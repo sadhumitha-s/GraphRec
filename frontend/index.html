@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphRec - Interactions</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="container">
+    <nav>
+        <a href="index.html" class="active">Interact</a>
+        <a href="recommendations.html">Recommendations</a>
+    </nav>
+
+    <div class="card">
+        <h2>👤 Identity</h2>
+        <div class="control-group">
+            <label>I am User ID:</label>
+            <input type="number" class="user-id-input" min="1">
+        </div>
+        <p style="font-size: 0.9rem; color: #666;">
+            Changing this ID simulates switching accounts.
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>🎬 Movie Catalog</h2>
+        <p>Click items to "Like" them. This creates edges in the C++ graph.</p>
+        <div id="items-grid" class="grid">
+            <!-- Items injected by JS -->
+            <div style="padding:20px; text-align:center; color:#999; grid-column: 1/-1;">
+                Loading items from API...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+    // Page specific logic
+    async function initCatalog() {
+        const items = await fetchItems();
+        const grid = document.getElementById('items-grid');
+        grid.innerHTML = ''; // Clear loading
+
+        if (Object.keys(items).length === 0) {
+            grid.innerHTML = '<p>Could not load items. Is backend running on port 8000?</p>';
+            return;
+        }
+
+        Object.entries(items).forEach(([id, item]) => {
+            const card = document.createElement('div');
+            card.className = 'item-box';
+            card.innerHTML = `
+                <div style="font-weight:bold;">${item.title}</div>
+                <div class="badge">${item.category}</div>
+            `;
+            
+            card.onclick = async function() {
+                // Visual feedback
+                card.classList.add('clicked');
+                setTimeout(() => card.classList.remove('clicked'), 300);
+                
+                // API Call
+                await logInteraction(parseInt(id));
+            };
+            
+            grid.appendChild(card);
+        });
+    }
+
+    initCatalog();
+</script>
+
+</body>
+</html>

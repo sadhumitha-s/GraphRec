@@ -1,0 +1,23 @@
+--- Python ---
+
+pycache/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+--- C++ Build Artifacts ---
+
+cpp_engine/build/
+*.so
+*.pyd
+*.dylib
+
+--- Database ---
+
+*.db
+*.sqlite3
+
+--- OS Specific ---
+
+.DS_Store
