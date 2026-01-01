@@ -48,7 +48,7 @@ Average Case (Sparse Graph):
 Real-world interaction graphs are highly sparse. The complexity is proportional to the number of paths of length 3 originating from the user.
 
 $$O(N\_{paths})$$  
-This is significantly faster than Matrix Factorization training ($O(n\_{epochs} \\times E \\times k)$) or calculating full Cosine Similarity ($O(V\_U^2)$).
+This is significantly faster than Matrix Factorization training $(O(n_{epochs} \times E \times k))$ or calculating full Cosine Similarity $(O(V_U^2))$.
 
 ### **C. Ranking**
 
