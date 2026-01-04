@@ -6,8 +6,9 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
+#include <ctime>
+#include <cmath>
 
-// Represents a single user-item interaction
 struct Interaction {
     int user_id;
     int item_id;
@@ -16,30 +17,25 @@ struct Interaction {
 
 class RecommendationEngine {
 private:
-    // Graph Data Structures (Adjacency Lists)
+    // CHANGED: Adjacency Lists now store {ID, Timestamp} pairs
+    // Maps User ID -> List of {Item ID, Timestamp}
+    std::unordered_map<int, std::vector<std::pair<int, long>>> user_items;
     
-    // Maps User ID -> List of Item IDs they interacted with
-    std::unordered_map<int, std::vector<int>> user_items;
-    
-    // Maps Item ID -> List of User IDs who interacted with it
-    std::unordered_map<int, std::vector<int>> item_users;
+    // Maps Item ID -> List of {User ID, Timestamp}
+    std::unordered_map<int, std::vector<std::pair<int, long>>> item_users;
 
-    // Helper to check if a user has already seen an item
     bool has_interacted(int user_id, int item_id);
+
+    // Helper to calculate decay
+    double calculate_decay_score(long interaction_time, long current_time);
 
 public:
     RecommendationEngine();
     
-    // 1. Add interaction to the graph (O(1) amortized)
     void add_interaction(int user_id, int item_id, long timestamp);
-    
-    // 2. The Core Algorithm: BFS-based Recommendation
     std::vector<int> recommend(int target_user_id, int k);
-    
-    // 3. Rebuild graph from bulk data
     void rebuild(const std::vector<Interaction>& data);
     
-    // Metrics
     int get_user_count() const;
     int get_item_count() const;
     long get_edge_count() const;

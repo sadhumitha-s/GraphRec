@@ -2,72 +2,81 @@
 
 RecommendationEngine::RecommendationEngine() {}
 
-void RecommendationEngine::add_interaction(int user_id, int item_id, long timestamp) {
-    // Add forward edge: User -> Item
-    user_items[user_id].push_back(item_id);
+// Helper: Gravity Decay Formula
+// Recent interactions count more. 
+// Example: 0 days old = 1.0 score. 30 days old = ~0.5 score.
+double RecommendationEngine::calculate_decay_score(long interaction_time, long current_time) {
+    if (interaction_time > current_time) return 1.0; // Edge case: Future timestamps
     
-    // Add backward edge: Item -> User
-    item_users[item_id].push_back(user_id);
+    double diff_seconds = (double)(current_time - interaction_time);
+    double diff_days = diff_seconds / 86400.0;
+    
+    // Decay Factor (alpha). Larger = faster decay.
+    // 0.05 means an item loses half its value in about 20 days.
+    double alpha = 0.05; 
+    
+    return 1.0 / (1.0 + (alpha * diff_days));
+}
+
+void RecommendationEngine::add_interaction(int user_id, int item_id, long timestamp) {
+    // CHANGED: Push pair {id, timestamp}
+    user_items[user_id].push_back({item_id, timestamp});
+    item_users[item_id].push_back({user_id, timestamp});
 }
 
 bool RecommendationEngine::has_interacted(int user_id, int item_id) {
     if (user_items.find(user_id) == user_items.end()) return false;
     const auto& items = user_items[user_id];
-    // In a production system, user_items values might be a set for O(1) lookup,
-    // but vector is faster for iteration which is our primary op.
-    for (int id : items) {
-        if (id == item_id) return true;
+    for (const auto& pair : items) {
+        if (pair.first == item_id) return true;
     }
     return false;
 }
 
 std::vector<int> RecommendationEngine::recommend(int target_user_id, int k) {
-    // Step 0: Edge case - new user
-    if (user_items.find(target_user_id) == user_items.end()) {
-        return {}; 
-    }
+    if (user_items.find(target_user_id) == user_items.end()) return {}; 
 
-    // Target user's history
-    const std::vector<int>& target_history = user_items[target_user_id];
+    // Get current time for decay calculation
+    long current_time = std::time(nullptr);
+
+    // 1. Get Target History
+    const auto& target_history = user_items[target_user_id];
     
-    // Use a set for O(1) lookup of items to exclude (already seen)
-    std::unordered_set<int> seen_items(target_history.begin(), target_history.end());
+    // Optimize "seen" lookup
+    std::unordered_set<int> seen_items;
+    for(const auto& p : target_history) seen_items.insert(p.first);
 
-    // Map to store candidate item scores: ItemID -> Score
     std::unordered_map<int, double> item_scores;
 
-    // --- Step 1: Find Similar Users (BFS Depth 2) ---
-    // Traversal: TargetUser -> Items -> OtherUsers
-    
-    for (int item_id : target_history) {
-        // Who else bought this?
+    // --- Step 1: Find Similar Users ---
+    for (const auto& [item_id, _] : target_history) {
         if (item_users.find(item_id) == item_users.end()) continue;
         
-        const std::vector<int>& neighbors = item_users[item_id];
+        const auto& neighbors = item_users[item_id];
         
-        for (int neighbor_id : neighbors) {
+        for (const auto& [neighbor_id, _] : neighbors) {
             if (neighbor_id == target_user_id) continue;
 
-            // --- Step 2: Score Candidate Items from Neighbors ---
-            // Traversal: OtherUser -> OtherItems
+            // --- Step 2: Score Candidate Items ---
             if (user_items.find(neighbor_id) == user_items.end()) continue;
             
-            const std::vector<int>& candidate_items = user_items[neighbor_id];
+            const auto& candidate_items = user_items[neighbor_id];
             
-            for (int candidate : candidate_items) {
-                // Ignore items the target user has already seen
-                if (seen_items.count(candidate)) continue;
+            for (const auto& [candidate_id, timestamp] : candidate_items) {
+                // Skip if target already saw it
+                if (seen_items.count(candidate_id)) continue;
 
-                // Simple Scoring: +1 for every path leading to this item.
-                // This effectively counts how many "similar users" interacted with this candidate.
-                // Advanced: You could weight this by (1 / neighbors.size()) to penalize popular items.
-                item_scores[candidate] += 1.0;
+                // CHANGED: Apply Time Decay
+                // Instead of adding 1.0, we add a weighted score based on recency.
+                double time_weight = calculate_decay_score(timestamp, current_time);
+                
+                // Base Score (1.0) * Time Weight
+                item_scores[candidate_id] += time_weight;
             }
         }
     }
 
-    // --- Step 3: Rank Results ---
-    // Convert map to vector of pairs for sorting
+    // --- Step 3: Rank ---
     std::vector<std::pair<int, double>> ranked_candidates;
     ranked_candidates.reserve(item_scores.size());
     
@@ -75,13 +84,11 @@ std::vector<int> RecommendationEngine::recommend(int target_user_id, int k) {
         ranked_candidates.push_back(kv);
     }
 
-    // Sort by score descending
     std::sort(ranked_candidates.begin(), ranked_candidates.end(),
               [](const std::pair<int, double>& a, const std::pair<int, double>& b) {
                   return a.second > b.second; 
               });
 
-    // Extract top K
     std::vector<int> results;
     for (int i = 0; i < std::min((int)ranked_candidates.size(), k); ++i) {
         results.push_back(ranked_candidates[i].first);
