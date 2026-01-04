@@ -1,9 +1,9 @@
 :root {
     /* Minimalist Dark Theme */
-    --bg-body: #09090b;       /* Deep Zinc */
-    --bg-card: #18181b;       /* Zinc 900 */
-    --text-main: #e4e4e7;     /* Zinc 200 */
-    --text-muted: #71717a;    /* Zinc 500 */
+    --bg-body: #09090b;       
+    --bg-card: #18181b;       
+    --text-main: #e4e4e7;     
+    --text-muted: #a1a1aa;    
     
     --primary: #fafafa;       
     --accent: #3b82f6;        
@@ -24,15 +24,17 @@ body {
     justify-content: center;
     min-height: 100vh;
     line-height: 1.6;
+    font-size: 18px; 
 }
 
-.container { max-width: 800px; width: 100%; }
+.container { max-width: 850px; width: 100%; }
 
 /* Navigation */
-nav { display: flex; justify-content: center; margin-bottom: 60px; gap: 8px; }
+nav { display: flex; justify-content: center; margin-bottom: 60px; gap: 10px; }
 nav a {
-    text-decoration: none; color: var(--text-muted); font-size: 0.9rem;
-    font-weight: 500; padding: 8px 24px; border-radius: 99px;
+    text-decoration: none; color: var(--text-muted); 
+    font-size: 1.05rem; 
+    font-weight: 500; padding: 10px 28px; border-radius: 99px;
     transition: all 0.3s ease;
 }
 nav a:hover { color: var(--text-main); }
@@ -41,49 +43,51 @@ nav a.active { color: var(--bg-body); background: var(--text-main); font-weight:
 /* Cards & Text */
 .card { margin-bottom: 40px; }
 h2 {
-    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15em;
+    font-size: 0.9rem; 
+    text-transform: uppercase; letter-spacing: 0.15em;
     color: var(--text-muted); margin: 0 0 20px 0; font-weight: 600;
 }
-p { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px; }
+p { color: var(--text-muted); font-size: 1rem; margin-bottom: 24px; }
 
 /* Inputs */
 .control-group {
     display: flex; gap: 12px; align-items: center; background: var(--bg-card);
-    padding: 6px; border-radius: var(--radius); border: 1px solid var(--border);
+    padding: 8px; border-radius: var(--radius); border: 1px solid var(--border);
     width: fit-content;
 }
-.control-group label { font-size: 0.9rem; color: var(--text-muted); padding-left: 12px; }
+.control-group label { font-size: 1rem; color: var(--text-muted); padding-left: 12px; }
 input[type="number"] {
     background: transparent; border: none; border-left: 1px solid var(--border);
-    color: var(--text-main); padding: 8px 12px; font-size: 1rem;
-    width: 60px; outline: none; font-weight: 500;
+    color: var(--text-main); padding: 8px 14px; 
+    font-size: 1.1rem; 
+    width: 70px; outline: none; font-weight: 500;
 }
 
 /* Grid */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px; }
 .item-box {
     background: var(--bg-card); border: 1px solid var(--border); padding: 24px;
     border-radius: var(--radius); cursor: pointer; transition: all 0.2s ease;
     display: flex; flex-direction: column; justify-content: space-between;
-    min-height: 120px; position: relative;
+    min-height: 140px; position: relative;
 }
 .item-box:hover { border-color: var(--text-muted); transform: translateY(-2px); }
 
 /* Selected State */
 .item-box.clicked { border-color: var(--accent); background: rgba(59, 130, 246, 0.05); }
 .item-box.clicked::after {
-    content: ''; position: absolute; top: 16px; right: 16px; width: 5px; height: 9px;
+    content: ''; position: absolute; top: 20px; right: 20px; width: 6px; height: 12px;
     border: solid var(--accent); border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 
-.item-box div:first-child { font-size: 1.05rem; font-weight: 500; margin-bottom: 12px; }
+.item-box div:first-child { font-size: 1.2rem; font-weight: 500; margin-bottom: 12px; }
 
 /* --- BADGES & GENRES --- */
 
 .badge, .genre-tag {
     display: inline-block;
-    font-size: 0.7rem;
-    padding: 4px 10px;
+    font-size: 0.8rem; 
+    padding: 6px 12px;
     border-radius: 6px;
     background: var(--bg-body);
     border: 1px solid var(--border);
@@ -93,36 +97,46 @@ input[type="number"] {
     transition: all 0.2s;
 }
 
-/* Genre Tag Specifics (Clickable) */
-.genre-tag { cursor: pointer; font-size: 0.8rem; padding: 6px 14px; border-radius: 20px; }
+.genre-tag { cursor: pointer; font-size: 0.9rem; padding: 8px 16px; border-radius: 20px; }
 .genre-tag:hover { filter: brightness(1.2); }
 
 /* --- COLOR PALETTE --- */
-
-/* Sci-Fi: Cyan */
 .badge.Sci-Fi, .genre-tag.Sci-Fi { color: #22d3ee; background: rgba(34, 211, 238, 0.1); border-color: rgba(34, 211, 238, 0.2); }
 .genre-tag.Sci-Fi.active { background: #22d3ee; color: #000; }
 
-/* Action: Orange */
 .badge.Action, .genre-tag.Action { color: #fb923c; background: rgba(251, 146, 60, 0.1); border-color: rgba(251, 146, 60, 0.2); }
 .genre-tag.Action.active { background: #fb923c; color: #000; }
 
-/* Horror: Red */
 .badge.Horror, .genre-tag.Horror { color: #f87171; background: rgba(248, 113, 113, 0.1); border-color: rgba(248, 113, 113, 0.2); }
 .genre-tag.Horror.active { background: #f87171; color: #000; }
 
-/* Comedy: Yellow/Gold */
 .badge.Comedy, .genre-tag.Comedy { color: #facc15; background: rgba(250, 204, 21, 0.1); border-color: rgba(250, 204, 21, 0.2); }
 .genre-tag.Comedy.active { background: #facc15; color: #000; }
 
-/* Drama: Purple */
 .badge.Drama, .genre-tag.Drama { color: #c084fc; background: rgba(192, 132, 252, 0.1); border-color: rgba(192, 132, 252, 0.2); }
 .genre-tag.Drama.active { background: #c084fc; color: #000; }
 
-/* Animation: Pink */
 .badge.Animation, .genre-tag.Animation { color: #f472b6; background: rgba(244, 114, 182, 0.1); border-color: rgba(244, 114, 182, 0.2); }
 .genre-tag.Animation.active { background: #f472b6; color: #000; }
 
-/* Crime: Slate (Keep it classy/neutral) */
 .badge.Crime, .genre-tag.Crime { color: #94a3b8; background: rgba(148, 163, 184, 0.1); border-color: rgba(148, 163, 184, 0.2); }
 .genre-tag.Crime.active { background: #94a3b8; color: #000; }
+
+/* --- Recommendation List --- */
+.rec-list { list-style: none; padding: 0; border-top: 1px solid var(--border); }
+
+/* Updated .rec-item for stacking */
+.rec-item {
+    display: flex; 
+    /* Removed justify-content: space-between to allow inner div to control layout */
+    padding: 24px 0; 
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+}
+
+.rec-item strong {
+    display: block; 
+    font-size: 1.25rem; 
+    margin-bottom: 0; /* Margin handled by flex container now */
+    font-weight: 500;
+}

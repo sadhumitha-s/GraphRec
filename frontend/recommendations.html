@@ -26,13 +26,13 @@
     <div class="card">
         <h2>Live Recommendations</h2>
         <div id="results-area">
-            <p style="color: #666;">Click Refresh to traverse the graph.</p>
+            <p style="color: var(--text-muted);">Click Refresh to traverse the graph.</p>
         </div>
     </div>
 
     <div class="card">
         <h2>Engine Metrics</h2>
-        <div id="metrics-area" class="metrics-bar">
+        <div id="metrics-area" style="font-family: monospace; color: var(--text-muted);">
             <span>Loading metrics...</span>
         </div>
     </div>
@@ -47,13 +47,13 @@
         const data = await fetchRecommendations();
 
         if (!data) {
-            container.innerHTML = '<p style="color:red">Error contacting backend.</p>';
+            container.innerHTML = '<p style="color:var(--text-muted)">Error contacting backend.</p>';
             return;
         }
 
         if (data.recommendations.length === 0) {
             container.innerHTML = `
-                <div style="text-align:center; padding: 20px;">
+                <div style="text-align:center; padding: 40px;">
                     <p>No recommendations found.</p>
                     <small>Go to the <strong>Interact</strong> page and like some items first!</small>
                 </div>
@@ -65,12 +65,26 @@
             data.recommendations.forEach(item => {
                 const li = document.createElement('li');
                 li.className = 'rec-item';
+                
+                // Classy Text Color for strategy
+                // Blue for Graph, Gold for Trending/Catalog
+                let reasonColor = item.reason.includes("Graph") 
+                    ? "#3b82f6"  // Blue
+                    : "#eab308"; // Gold/Yellow
+
+                // New Layout: Title row first, then Reason row underneath
                 li.innerHTML = `
-                    <div>
-                        <strong>${item.title}</strong>
-                        <span class="badge">${item.category}</span>
+                    <div style="width: 100%">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <strong>${item.title}</strong>
+                            <span class="badge ${item.category}">${item.category}</span>
+                        </div>
+                        
+                        <div style="font-size: 0.8rem; color: var(--text-muted); display:flex; align-items:center; gap:6px;">
+                            <span style="color:${reasonColor}; font-size:1.2em; line-height:0;">●</span>
+                            <span>${item.reason}</span>
+                        </div>
                     </div>
-                    <div class="rec-score">Recommended</div>
                 `;
                 ul.appendChild(li);
             });
@@ -78,16 +92,14 @@
             container.innerHTML = '';
             container.appendChild(ul);
             
-            // Add latency footer
             const meta = document.createElement('div');
-            meta.style.marginTop = '15px';
-            meta.style.fontSize = '0.8rem';
-            meta.style.color = '#94a3b8';
+            meta.style.marginTop = '20px';
+            meta.style.fontSize = '0.85rem';
+            meta.style.color = 'var(--text-muted)';
             meta.innerText = `Computed in ${data.latency_ms.toFixed(4)} ms`;
             container.appendChild(meta);
         }
         
-        // Refresh metrics too
         renderMetrics();
     }
 
@@ -97,12 +109,11 @@
         if (metrics) {
             area.innerHTML = `
                 <span>Nodes: ${metrics.nodes_users + metrics.nodes_items}</span>
-                <span>Edges: ${metrics.edges_interactions}</span>
+                <span style="margin-left:15px">Edges: ${metrics.edges_interactions}</span>
             `;
         }
     }
 
-    // Load on page open
     window.addEventListener('userChanged', renderRecommendations);
     renderMetrics();
 </script>

@@ -1,101 +1,86 @@
 const API_URL = "http://localhost:8000";
 
-// --- State Management ---
 const AppState = {
     userId: localStorage.getItem('graph_user_id') || 1,
+    selectedGenres: new Set(),
     
     setUserId: function(id) {
         this.userId = id;
         localStorage.setItem('graph_user_id', id);
-        // Dispatch event so other parts of UI can update
         window.dispatchEvent(new Event('userChanged'));
     }
 };
 
-// --- API Interactions ---
+// --- API Calls ---
 
 async function fetchItems() {
     try {
         const res = await fetch(`${API_URL}/items`);
         return await res.json();
-    } catch (e) {
-        console.error("API Error:", e);
-        return {};
-    }
+    } catch (e) { return {}; }
+}
+
+async function toggleInteraction(itemId, isUnlike) {
+    const method = isUnlike ? 'DELETE' : 'POST';
+    try {
+        const res = await fetch(`${API_URL}/interaction/`, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(AppState.userId), item_id: itemId })
+        });
+        return res.ok;
+    } catch (e) { return false; }
+}
+
+async function fetchUserLikes() {
+    try {
+        const res = await fetch(`${API_URL}/interaction/${AppState.userId}`);
+        return res.ok ? await res.json() : [];
+    } catch (e) { return []; }
+}
+
+async function savePreferences() {
+    const genres = Array.from(AppState.selectedGenres);
+    await fetch(`${API_URL}/recommend/preferences`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: parseInt(AppState.userId), genres: genres })
+    });
 }
 
 async function fetchRecommendations() {
-    const userId = AppState.userId;
+    await savePreferences();
     try {
-        const res = await fetch(`${API_URL}/recommend/${userId}?k=5`);
+        const res = await fetch(`${API_URL}/recommend/${AppState.userId}?k=5`);
         return await res.json();
-    } catch (e) {
-        console.error("Rec Error:", e);
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
 async function fetchMetrics() {
     try {
         const res = await fetch(`${API_URL}/metrics/`);
         return await res.json();
-    } catch (e) {
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
-async function toggleInteraction(itemId, isUnlike) {
-    const userId = AppState.userId;
-    const method = isUnlike ? 'DELETE' : 'POST'; // Switch method
-
-    try {
-        const res = await fetch(`${API_URL}/interaction/`, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: parseInt(userId), item_id: itemId })
-        });
-        
-        if(res.ok) {
-            console.log(isUnlike ? "Unliked" : "Liked");
-            return true;
-        }
-        return false;
-    } catch (e) {
-        console.error("API Error", e);
-        return false;
-    }
-}
-
-// --- NEW FUNCTION: Fetch history ---
-async function fetchUserLikes() {
-    const userId = AppState.userId;
-    try {
-        const res = await fetch(`${API_URL}/interaction/${userId}`);
-        if (res.ok) {
-            return await res.json(); // Returns array like [101, 102]
-        }
-        return [];
-    } catch (e) {
-        console.error("Error fetching likes:", e);
-        return [];
-    }
-}
-
-// --- Shared UI Helpers ---
+// --- Helpers ---
 
 function updateUserIdDisplay() {
-    const inputs = document.querySelectorAll('.user-id-input');
-    inputs.forEach(input => input.value = AppState.userId);
+    document.querySelectorAll('.user-id-input').forEach(input => input.value = AppState.userId);
 }
 
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     updateUserIdDisplay();
     
-    // Listen for manual changes to inputs
     document.querySelectorAll('.user-id-input').forEach(input => {
-        input.addEventListener('change', (e) => {
-            AppState.setUserId(e.target.value);
+        // Existing logic: Update on change (blur or stepper click)
+        input.addEventListener('change', (e) => AppState.setUserId(e.target.value));
+        
+        // 1. NEW: Handle Enter Key to trigger "refresh"
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.target.blur(); // Forces the 'change' event to fire immediately
+            }
         });
     });
 });
