@@ -15,3 +15,9 @@ class Item(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255))
     category = Column(String(100))
+
+class UserPreference(Base):
+    __tablename__ = "user_preferences"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    genre_id = Column(Integer)

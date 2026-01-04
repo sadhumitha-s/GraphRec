@@ -19,38 +19,39 @@ class RecResponse(BaseModel):
     recommendations: List[ItemResponse]
     latency_ms: float
 
+# NEW: API to save preferences
+class PrefRequest(BaseModel):
+    user_id: int
+    genres: List[str]
+
+@router.post("/preferences")
+def save_preferences(data: PrefRequest, db: Session = Depends(session.get_db)):
+    crud.set_user_preferences(db, data.user_id, data.genres)
+    return {"status": "success", "msg": "Preferences saved"}
+
 @router.get("/{user_id}", response_model=RecResponse)
 def get_recommendations(user_id: int, k: int = 5, db: Session = Depends(session.get_db)):
     engine = get_engine()
     t0 = time.time()
     
-    # 1. Fetch "Blacklist" (Items user has already seen)
-    # We convert to a set for fast O(1) checking
     seen_ids = crud.get_user_interacted_ids(db, user_id)
-
-    # 2. Strategy A: Graph-Based (Personalized)
-    # Ask C++ Engine
-    raw_recs = engine.recommend(user_id, k)
     
-    # Strict Filter: Remove any item that is in seen_ids
-    # (Even if C++ is supposed to do it, we do it here again to be 100% sure)
+    # NEW: Fetch user's preferred genre IDs [1, 4, ...]
+    pref_ids = crud.get_user_preference_ids(db, user_id)
+
+    # 1. C++ Recommendation (Pass prefs)
+    # The C++ engine will boost scores for items matching pref_ids
+    raw_recs = engine.recommend(user_id, k, pref_ids)
+    
     rec_ids = [pid for pid in raw_recs if pid not in seen_ids]
-    strategy = "Graph-Based (Personalized)"
+    strategy = "Graph-Based (Personalized + Taste)"
 
-    # 3. Strategy B: Global Trending (Fallback)
-    # If Strategy A failed (empty list), try Popular items
+    # 2. Fallback
     if not rec_ids:
-        # Fetch more than k (k + len(seen) + buffer) to ensure we have enough after filtering
         candidates = crud.get_popular_item_ids(db, limit=k + len(seen_ids) + 5)
-        
-        # Filter again
         rec_ids = [pid for pid in candidates if pid not in seen_ids][:k]
-        
-        if rec_ids:
-            strategy = "Global Trending (Popular)"
+        if rec_ids: strategy = "Global Trending (Popular)"
 
-    # 4. Strategy C: Safety Net (Catalog)
-    # If even Popular returned nothing (e.g., system has 0 likes total, or user has seen all popular items)
     if not rec_ids:
         candidates = crud.get_default_items(db, limit=k + len(seen_ids) + 5)
         rec_ids = [did for did in candidates if did not in seen_ids][:k]
@@ -58,7 +59,6 @@ def get_recommendations(user_id: int, k: int = 5, db: Session = Depends(session.
 
     t1 = time.time()
     
-    # 5. Hydrate Data (ID -> Title/Category)
     item_map = crud.get_item_map(db)
     results = []
     
