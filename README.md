@@ -10,7 +10,7 @@
 
 ### Quick Start
 
-1. **Compile the C++ Engine**
+1. **Compile the C++ Engine**  
    You must compile the core engine before running the Python backend.
 ```bash
 cd cpp_engine/build
