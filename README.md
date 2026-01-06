@@ -10,6 +10,55 @@
 
 ---
 
+## Project Structure  
+```pqsql
+graphrec-engine/
+│
+├── backend/                        # FastAPI Orchestrator
+│   ├── requirements.txt            # Dependencies (FastAPI, SQLAlchemy, Psycopg2)
+│   ├── recommender*.so             # Compiled C++ Module (Must be moved here after build)
+│   │
+│   └── app/
+│       ├── main.py                 # App Entry: Handles DB startup & loads Graph data
+│       ├── config.py               # Cloud DB Configuration (PostgreSQL/Supabase)
+│       │
+│       ├── api/
+│       │   ├── interactions.py     # POST/DELETE endpoints for Real-time Graph updates
+│       │   ├── recommend.py        # Logic: Waterfall Strategy (Graph -> Trending -> Catalog)
+│       │   └── metrics.py          # System stats (Node/Edge counts)
+│       │
+│       ├── core/
+│       │   └── recommender.py      # Python Wrapper/Singleton for C++ Engine
+│       │
+│       └── db/
+│           ├── session.py          # Database Connection (SQLAlchemy)
+│           ├── models.py           # Schema: Items, Interactions, UserPreferences
+│           └── crud.py             # Smart Seeding, History Fetching, Genre Mapping
+│
+├── cpp_engine/                     # High-Performance Graph Core
+│   ├── CMakeLists.txt              # Build Config (Pybind11 integration)
+│   ├── include/
+│   │   └── RecommendationEngine.h  # Header: Genre Maps & BFS Definitions
+│   └── src/
+│       ├── RecommendationEngine.cpp # Implementation: BFS, Time-Decay, Genre Boosting
+│       └── bindings.cpp            # Pybind11 hooks to expose C++ class to Python
+│
+├── frontend/                       # Client Application (Vanilla JS)
+│   ├── index.html                  # Main UI: Genre Cloud & Movie Catalog
+│   ├── recommendations.html        # Results UI: Recommendations & Strategy Badges
+│   ├── css/
+│   │   └── styles.css              # Dark Mode Theme & Genre Color Palettes
+│   └── js/
+│       └── app.js                  # State Management, API Calls, Event Listeners
+│
+└── docs/                           
+    ├── architecture.md             
+    ├── algorithms.md               
+    └── complexity.md               
+```
+
+---  
+
 ### Quick Start
 
 1. **Compile the C++ Engine**  
