@@ -96,7 +96,16 @@
             meta.style.marginTop = '20px';
             meta.style.fontSize = '0.85rem';
             meta.style.color = 'var(--text-muted)';
-            meta.innerText = `Computed in ${data.latency_ms.toFixed(4)} ms`;
+            meta.style.display = 'flex';
+            meta.style.justifyContent = 'space-between';
+            
+            // Show Latency AND Source
+            meta.innerHTML = `
+                <span>Computed in ${data.latency_ms.toFixed(4)} ms</span>
+                <span style="color: ${data.source.includes('Redis') ? '#10b981' : '#a1a1aa'}">
+                    From: ${data.source}
+                </span>
+            `;
             container.appendChild(meta);
         }
         

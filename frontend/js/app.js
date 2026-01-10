@@ -46,10 +46,13 @@ async function savePreferences() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: parseInt(AppState.userId), genres: genres })
     });
+    console.log("Preferences saved:", genres);
 }
 
 async function fetchRecommendations() {
-    await savePreferences();
+    // REMOVED: await savePreferences(); 
+    // We don't save prefs here anymore. Only when buttons are clicked.
+    
     try {
         const res = await fetch(`${API_URL}/recommend/${AppState.userId}?k=5`);
         return await res.json();
@@ -73,13 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
     updateUserIdDisplay();
     
     document.querySelectorAll('.user-id-input').forEach(input => {
-        // Existing logic: Update on change (blur or stepper click)
         input.addEventListener('change', (e) => AppState.setUserId(e.target.value));
-        
-        // 1. NEW: Handle Enter Key to trigger "refresh"
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
-                e.target.blur(); // Forces the 'change' event to fire immediately
+                e.target.blur(); 
             }
         });
     });

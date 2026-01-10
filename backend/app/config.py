@@ -9,4 +9,7 @@ class Settings:
     # (Comment out the line below while testing with the hardcoded URL above)
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./graphrec.db")
 
+    # REDIS URL (Default to local if not set)
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
 settings = Settings()
