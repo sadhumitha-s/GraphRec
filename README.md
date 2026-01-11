@@ -56,7 +56,6 @@ Builds the C++ engine inside Linux, sets up Redis, and starts the app automatica
 
 docker-compose up \--build
   
----    
   
 ### **Option B: Manual Setup (Mac/Linux)**
 
