@@ -42,6 +42,9 @@ COPY backend/ .
 # Copy Compiled C++ Engine from Stage 1
 COPY --from=builder /build/cpp_engine/build/recommender*.so ./
 
+# Copy Frontend Code
+COPY frontend/ ./frontend/
+
 # Expose Port
 EXPOSE 8000
 

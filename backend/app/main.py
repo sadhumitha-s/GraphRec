@@ -1,6 +1,8 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from .config import settings
 from .db import session, models, crud
@@ -83,12 +85,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- API Routers ---
 app.include_router(interactions.router, prefix="/interaction", tags=["Interactions"])
 app.include_router(recommend.router, prefix="/recommend", tags=["Recommendations"])
 app.include_router(metrics.router, prefix="/metrics", tags=["Metrics"])
 
-@app.get("/")
-def root(): return {"message": "GraphRec API", "status": "online"}
+# --- API Endpoints ---
+@app.get("/api/health")
+def health_check():
+    return {"status": "online", "message": "GraphRec API is running"}
 
 @app.get("/items")
 def get_all_items_endpoint():
@@ -96,3 +101,50 @@ def get_all_items_endpoint():
     items = crud.get_item_map(db)
     db.close()
     return {k: v for k, v in items.items()}
+
+# --- STATIC FILES & FRONTEND SERVING (For Production) ---
+
+# Robust Path Finding
+# 1. Get path to backend/app/main.py
+current_file = os.path.abspath(__file__)
+app_dir = os.path.dirname(current_file)       # .../backend/app
+backend_dir = os.path.dirname(app_dir)        # .../backend
+
+# 2. Try identifying Frontend Location
+# Location A: Project Root (Local Dev) -> .../backend/../frontend
+frontend_local = os.path.join(os.path.dirname(backend_dir), "frontend")
+# Location B: Docker Container (/app/frontend) -> backend_dir is /app
+frontend_docker = os.path.join(backend_dir, "frontend")
+
+if os.path.exists(frontend_local):
+    FRONTEND_DIR = frontend_local
+elif os.path.exists(frontend_docker):
+    FRONTEND_DIR = frontend_docker
+else:
+    # Fallback to current directory to prevent crash, though UI won't load
+    print("Warning: Frontend directory not found.")
+    FRONTEND_DIR = backend_dir
+
+# Mount CSS and JS folders
+if os.path.exists(os.path.join(FRONTEND_DIR, "css")):
+    app.mount("/css", StaticFiles(directory=os.path.join(FRONTEND_DIR, "css")), name="css")
+if os.path.exists(os.path.join(FRONTEND_DIR, "js")):
+    app.mount("/js", StaticFiles(directory=os.path.join(FRONTEND_DIR, "js")), name="js")
+
+# Catch-all route to serve index.html or specific pages
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    # Pass through API calls if they slipped through routers
+    if full_path.startswith("api") or full_path.startswith("interaction") or full_path.startswith("recommend") or full_path.startswith("metrics") or full_path.startswith("items") or full_path.startswith("docs") or full_path.startswith("openapi"):
+        return {"error": "Not Found"}
+    
+    # Try to serve specific file (e.g., recommendations.html)
+    target_file = os.path.join(FRONTEND_DIR, full_path)
+    if os.path.exists(target_file) and os.path.isfile(target_file):
+        return FileResponse(target_file)
+    
+    # Default: Serve index.html (SPA-like behavior)
+    index_file = os.path.join(FRONTEND_DIR, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {"error": "Frontend not found"}

@@ -4,6 +4,7 @@ sqlalchemy
 pydantic
 psycopg2-binary
 redis 
+aiofiles
 # For MySQL support (optional, defaults to SQLite if not configured)
 pymysql
 cryptography
