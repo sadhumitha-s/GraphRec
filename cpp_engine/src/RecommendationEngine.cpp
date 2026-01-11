@@ -97,6 +97,82 @@ std::vector<int> RecommendationEngine::recommend(int target_user_id, int k, cons
     return results;
 }
 
+// --- NEW: Personalized PageRank Implementation ---
+std::vector<int> RecommendationEngine::recommend_ppr(int target_user_id, int k, int num_walks, int walk_depth) {
+    if (user_items.find(target_user_id) == user_items.end()) return {};
+
+    // 1. Setup Random Number Generation
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    
+    // Map to store visit counts: ItemID -> Count
+    std::unordered_map<int, int> visit_counts;
+    
+    // Identify items already seen by target (to exclude them later)
+    std::unordered_set<int> seen_items;
+    const auto& history = user_items[target_user_id];
+    for(const auto& p : history) seen_items.insert(p.first);
+
+    // 2. Perform Random Walks (Monte Carlo Simulation)
+    for (int i = 0; i < num_walks; ++i) {
+        int curr_user = target_user_id;
+        int curr_item = -1;
+        
+        // Perform a single walk of specific depth
+        // Pattern: User -> Item -> User -> Item ...
+        for (int step = 0; step < walk_depth; ++step) {
+            
+            // A. Move User -> Item
+            if (user_items.find(curr_user) == user_items.end()) break;
+            const auto& u_items = user_items[curr_user];
+            if (u_items.empty()) break;
+            
+            std::uniform_int_distribution<> dis_item(0, u_items.size() - 1);
+            curr_item = u_items[dis_item(gen)].first;
+            
+            // If this is the end of the walk, record visit
+            if (step == walk_depth - 1) {
+                // Only count if not seen by target
+                if (seen_items.find(curr_item) == seen_items.end()) {
+                    visit_counts[curr_item]++;
+                }
+                break; 
+            }
+
+            // B. Move Item -> User
+            if (item_users.find(curr_item) == item_users.end()) break;
+            const auto& i_users = item_users[curr_item];
+            if (i_users.empty()) break;
+
+            std::uniform_int_distribution<> dis_user(0, i_users.size() - 1);
+            curr_user = i_users[dis_user(gen)].first;
+        }
+    }
+
+    // 3. Rank Results by Visit Count
+    std::vector<std::pair<int, int>> ranked_candidates;
+    ranked_candidates.reserve(visit_counts.size());
+    
+    for (const auto& kv : visit_counts) {
+        ranked_candidates.push_back(kv);
+    }
+
+    // Sort Descending
+    std::sort(ranked_candidates.begin(), ranked_candidates.end(),
+              [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+                  return a.second > b.second; 
+              });
+
+    // Extract Top K
+    std::vector<int> results;
+    for (int i = 0; i < std::min((int)ranked_candidates.size(), k); ++i) {
+        results.push_back(ranked_candidates[i].first);
+    }
+
+    return results;
+}
+
+
 // ... rebuild, get_user_count etc remain same ...
 void RecommendationEngine::rebuild(const std::vector<Interaction>& data) {
     user_items.clear();

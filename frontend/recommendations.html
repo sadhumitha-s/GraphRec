@@ -4,37 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GraphRec - Results</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <!-- Version bump to force refresh -->
+    <link rel="stylesheet" href="css/styles.css?v=5">
 </head>
 <body>
 
 <div class="container">
     <nav>
-        <a href="index.html">Interact</a>
-        <a href="recommendations.html" class="active">Recommendations</a>
+        <a href="index.html">Discover</a>
+        <a href="recommendations.html" class="active">For You</a>
     </nav>
 
-    <div class="card">
-        <h2>Target User</h2>
-        <div class="control-group">
-            <label>Get recommendations for User ID:</label>
-            <input type="number" class="user-id-input" min="1">
-            <button onclick="renderRecommendations()">Refresh</button>
+    <div class="dashboard-grid">
+        <div class="card full-width" style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h2>Target User</h2>
+                <div class="control-group">
+                    <label>ID</label>
+                    <input type="number" class="user-id-input" min="1">
+                </div>
+            </div>
+            <button onclick="renderRecommendations()">Generate Recommendations</button>
         </div>
     </div>
 
     <div class="card">
-        <h2>Live Recommendations</h2>
+        <h2>Top Picks</h2>
         <div id="results-area">
-            <p style="color: var(--text-muted);">Click Refresh to traverse the graph.</p>
+            <p style="color: var(--text-muted);">Click Generate to traverse the graph.</p>
         </div>
     </div>
 
-    <div class="card">
-        <h2>Engine Metrics</h2>
-        <div id="metrics-area" style="font-family: monospace; color: var(--text-muted);">
-            <span>Loading metrics...</span>
-        </div>
+    <div style="text-align:center; color: var(--text-muted); font-family:monospace; font-size:0.8rem; margin-top:40px;">
+        <span id="metrics-area">Loading engine stats...</span>
     </div>
 </div>
 
@@ -42,7 +44,7 @@
 <script>
     async function renderRecommendations() {
         const container = document.getElementById('results-area');
-        container.innerHTML = '<p>Traversing graph...</p>';
+        container.innerHTML = '<div style="padding:20px; text-align:center">Analyzing Graph...</div>';
 
         const data = await fetchRecommendations();
 
@@ -55,7 +57,7 @@
             container.innerHTML = `
                 <div style="text-align:center; padding: 40px;">
                     <p>No recommendations found.</p>
-                    <small>Go to the <strong>Interact</strong> page and like some items first!</small>
+                    <small>Try liking some movies in the <strong>Discover</strong> tab!</small>
                 </div>
             `;
         } else {
@@ -66,21 +68,22 @@
                 const li = document.createElement('li');
                 li.className = 'rec-item';
                 
-                // Classy Text Color for strategy
-                // Blue for Graph, Gold for Trending/Catalog
-                let reasonColor = item.reason.includes("Graph") 
-                    ? "#3b82f6"  // Blue
-                    : "#eab308"; // Gold/Yellow
+                let reasonColor = item.reason.includes("Graph") ? "#6366f1" : "#eab308";
 
-                // New Layout: Title row first, then Reason row underneath
                 li.innerHTML = `
-                    <div style="width: 100%">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <strong>${item.title}</strong>
+                    <!-- 1. Mini Poster with Genre Gradient -->
+                    <div class="mini-poster ${item.category}"></div>
+                    
+                    <div style="flex-grow:1">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <!-- 2. Title -->
+                            <div style="font-size:1.2rem; font-weight:700;">${item.title}</div>
+                            <!-- 3. Colored Badge -->
                             <span class="badge ${item.category}">${item.category}</span>
                         </div>
                         
-                        <div style="font-size: 0.8rem; color: var(--text-muted); display:flex; align-items:center; gap:6px;">
+                        <!-- 4. Reason Footer -->
+                        <div style="margin-top:8px; font-size:0.8rem; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
                             <span style="color:${reasonColor}; font-size:1.2em; line-height:0;">●</span>
                             <span>${item.reason}</span>
                         </div>
@@ -94,17 +97,18 @@
             
             const meta = document.createElement('div');
             meta.style.marginTop = '20px';
-            meta.style.fontSize = '0.85rem';
+            meta.style.fontSize = '0.8rem';
             meta.style.color = 'var(--text-muted)';
             meta.style.display = 'flex';
             meta.style.justifyContent = 'space-between';
+            meta.style.borderTop = '1px solid var(--glass-border)';
+            meta.style.paddingTop = '15px';
             
-            // Show Latency AND Source
+            const sourceColor = (data.source && data.source.includes("Redis")) ? "#4ade80" : "var(--text-muted)";
+
             meta.innerHTML = `
-                <span>Computed in ${data.latency_ms.toFixed(4)} ms</span>
-                <span style="color: ${data.source.includes('Redis') ? '#10b981' : '#a1a1aa'}">
-                    From: ${data.source}
-                </span>
+                <span>Time: ${data.latency_ms.toFixed(4)} ms</span>
+                <span style="color: ${sourceColor}; font-weight: 600;">From: ${data.source || 'Backend'}</span>
             `;
             container.appendChild(meta);
         }
@@ -116,10 +120,7 @@
         const metrics = await fetchMetrics();
         const area = document.getElementById('metrics-area');
         if (metrics) {
-            area.innerHTML = `
-                <span>Nodes: ${metrics.nodes_users + metrics.nodes_items}</span>
-                <span style="margin-left:15px">Edges: ${metrics.edges_interactions}</span>
-            `;
+            area.innerHTML = `Nodes: ${metrics.nodes_users + metrics.nodes_items} | Edges: ${metrics.edges_interactions}`;
         }
     }
 

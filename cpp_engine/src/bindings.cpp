@@ -19,9 +19,17 @@ PYBIND11_MODULE(recommender, m) {
         .def("remove_interaction", &RecommendationEngine::remove_interaction)
         // NEW: Expose set_item_genre
         .def("set_item_genre", &RecommendationEngine::set_item_genre)
-        // UPDATED: recommend now takes a list of ints
+        
+        //BFS 
         .def("recommend", &RecommendationEngine::recommend, 
              py::arg("target_user_id"), py::arg("k"), py::arg("preferred_genres") = std::vector<int>())
+        
+             
+        // --- NEW: PPR Binding ---
+        // Defaults: 5000 walks, Depth 2 (User->Item->User->Item)
+        .def("recommend_ppr", &RecommendationEngine::recommend_ppr,
+             py::arg("target_user_id"), py::arg("k"), py::arg("num_walks") = 10000, py::arg("walk_depth") = 2)     
+
 
         // --- NEW: Save to disk bindings ---     
         .def("save_model", &RecommendationEngine::save_model)

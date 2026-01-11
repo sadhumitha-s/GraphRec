@@ -4,40 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GraphRec - Interactions</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <style>
-        .genre-cloud { display: flex; flex-wrap: wrap; gap: 10px; }
-    </style>
+    <link rel="stylesheet" href="css/styles.css?v=3">
 </head>
 <body>
 
 <div class="container">
     <nav>
-        <a href="index.html" class="active">Interact</a>
-        <a href="recommendations.html">Recommendations</a>
+        <a href="index.html" class="active">Discover</a>
+        <a href="recommendations.html">For You</a>
     </nav>
 
-    <div class="card">
-        <h2>Identity</h2>
-        <div class="control-group">
-            <label>I am User ID:</label>
-            <input type="number" class="user-id-input" min="1">
+    <!-- Top Dashboard Section -->
+    <div class="dashboard-grid">
+        <!-- Identity Card -->
+        <div class="card">
+            <h2>Identity</h2>
+            <div class="control-group">
+                <label>User ID</label>
+                <input type="number" class="user-id-input" min="1">
+            </div>
+            <p style="margin-top:15px; font-size:0.9rem; color:var(--text-muted)">
+                Simulate different users to see how the graph changes.
+            </p>
+        </div>
+
+        <!-- Algorithm Card -->
+        <div class="card">
+            <h2>Intelligence</h2>
+            <div class="control-group">
+                <label>Engine</label>
+                <select id="algo-selector">
+                    <option value="bfs">Weighted BFS</option>
+                    <option value="ppr">PageRank (AI)</option>
+                </select>
+            </div>
+            <p style="margin-top:15px; font-size:0.9rem; color:var(--text-muted)">
+                Choose between deterministic neighbor search or probabilistic random walks.
+            </p>
+        </div>
+
+        <!-- Tastes Card (Full Width) -->
+        <div class="card full-width">
+            <h2>Taste Profile</h2>
+            <div class="genre-cloud" id="genre-container"></div>
         </div>
     </div>
 
-    <div class="card">
-        <h2>My Tastes</h2>
-        <p>Select genres you enjoy to boost related recommendations.</p>
-        <div class="genre-cloud" id="genre-container">
-            <!-- Buttons injected by JS -->
-        </div>
-    </div>
-
-    <div class="card">
-        <h2>Movie Catalog</h2>
-        <p>Click to Like/Unlike movies.</p>
+    <!-- Movie Grid -->
+    <div>
+        <h2 style="margin-left: 10px; margin-bottom: 25px;">Catalog</h2>
         <div id="items-grid" class="grid">
-            Loading...
+            <!-- Items injected by JS -->
         </div>
     </div>
 </div>
@@ -47,16 +64,20 @@
     const ALL_GENRES = ["Action", "Animation", "Comedy", "Crime", "Drama", "Horror", "Sci-Fi"];
 
     async function initApp() {
-        // 1. Render Genre Buttons
+        // 1. Algo Setup
+        const algoSelect = document.getElementById('algo-selector');
+        algoSelect.value = localStorage.getItem('graph_algo') || 'bfs';
+        algoSelect.addEventListener('change', (e) => AppState.setAlgo(e.target.value));
+
+        // 2. Genre Cloud
         const genreContainer = document.getElementById('genre-container');
-        genreContainer.innerHTML = ''; // Clear prev
-        
+        genreContainer.innerHTML = '';
         ALL_GENRES.forEach(genre => {
             const btn = document.createElement('div');
-            // Add genre name as a class for coloring (e.g., "genre-tag Sci-Fi")
-            btn.className = `genre-tag ${genre}`;
-            btn.innerText = genre;
             
+            btn.className = `genre-tag ${genre}`; 
+            
+            btn.innerText = genre;
             btn.onclick = () => {
                 if (AppState.selectedGenres.has(genre)) {
                     AppState.selectedGenres.delete(genre);
@@ -70,38 +91,33 @@
             genreContainer.appendChild(btn);
         });
 
-        // 2. Render Grid
+        // 3. Movie Grid
         const items = await fetchItems();
         const grid = document.getElementById('items-grid');
         grid.innerHTML = '';
-
-        if (Object.keys(items).length === 0) {
-            grid.innerHTML = '<p>Is backend running?</p>';
-            return;
-        }
 
         Object.entries(items).forEach(([id, item]) => {
             const card = document.createElement('div');
             card.className = 'item-box';
             card.id = `item-${id}`; 
             
-            // Add genre name to badge class
+            // New "Poster" Layout
             card.innerHTML = `
-                <div>${item.title}</div>
-                <div class="badge ${item.category}">${item.category}</div>
+                <div class="poster-art ${item.category}"></div>
+                <div class="movie-info">
+                    <div class="movie-title">${item.title}</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted)">${item.category}</div>
+                </div>
             `;
             
             card.onclick = async function() {
                 const isLiked = card.classList.contains('clicked');
                 const success = await toggleInteraction(parseInt(id), isLiked); 
-                if (success) {
-                    isLiked ? card.classList.remove('clicked') : card.classList.add('clicked');
-                }
+                if (success) isLiked ? card.classList.remove('clicked') : card.classList.add('clicked');
             };
             grid.appendChild(card);
         });
 
-        // 3. Load Likes
         await loadUserLikes();
     }
 

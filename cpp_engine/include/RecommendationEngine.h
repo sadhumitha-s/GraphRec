@@ -8,7 +8,8 @@
 #include <iostream>
 #include <ctime>
 #include <cmath>
-#include <fstream> // <--- NEW INCLUDE
+#include <fstream> 
+#include <random>
 
 struct Interaction {
     int user_id;
@@ -33,6 +34,9 @@ public:
     void set_item_genre(int item_id, int genre_id);
     
     std::vector<int> recommend(int target_user_id, int k, const std::vector<int>& preferred_genres);
+
+    std::vector<int> recommend_ppr(int target_user_id, int k, int num_walks, int walk_depth);
+
     void rebuild(const std::vector<Interaction>& data);
     
     // --- NEW: Serialization Methods ---

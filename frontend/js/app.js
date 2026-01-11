@@ -2,12 +2,19 @@ const API_URL = "http://localhost:8000";
 
 const AppState = {
     userId: localStorage.getItem('graph_user_id') || 1,
+    algo: localStorage.getItem('graph_algo') || 'bfs', // Default to BFS
     selectedGenres: new Set(),
     
     setUserId: function(id) {
         this.userId = id;
         localStorage.setItem('graph_user_id', id);
         window.dispatchEvent(new Event('userChanged'));
+    },
+
+    setAlgo: function(algo) {
+        this.algo = algo;
+        localStorage.setItem('graph_algo', algo);
+        console.log("Switched Strategy:", algo);
     }
 };
 
@@ -46,15 +53,12 @@ async function savePreferences() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: parseInt(AppState.userId), genres: genres })
     });
-    console.log("Preferences saved:", genres);
 }
 
 async function fetchRecommendations() {
-    // REMOVED: await savePreferences(); 
-    // We don't save prefs here anymore. Only when buttons are clicked.
-    
+    // Pass the selected algo to the backend
     try {
-        const res = await fetch(`${API_URL}/recommend/${AppState.userId}?k=5`);
+        const res = await fetch(`${API_URL}/recommend/${AppState.userId}?k=5&algo=${AppState.algo}`);
         return await res.json();
     } catch (e) { return null; }
 }
@@ -78,9 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.user-id-input').forEach(input => {
         input.addEventListener('change', (e) => AppState.setUserId(e.target.value));
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.target.blur(); 
-            }
+            if (e.key === 'Enter') e.target.blur(); 
         });
     });
 });
