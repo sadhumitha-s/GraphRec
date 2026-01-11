@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, desc
 from . import models
 import time
 
@@ -93,6 +93,30 @@ def get_user_preference_ids(db: Session, user_id: int):
                 .filter(models.UserPreference.user_id == user_id)\
                 .all()
     return [r[0] for r in results]
+
+# --- NEW: SNAPSHOT HELPERS ---
+
+def save_snapshot(db: Session, binary_content: bytes):
+    """
+    Saves the binary content of graph.bin to the database.
+    To save space, we delete old snapshots and keep only the latest one.
+    """
+    # 1. Delete old snapshots
+    db.query(models.GraphSnapshot).delete()
+    
+    # 2. Add new snapshot
+    snapshot = models.GraphSnapshot(binary_data=binary_content)
+    db.add(snapshot)
+    db.commit()
+
+def get_latest_snapshot(db: Session):
+    """Returns the binary content (bytes) of the latest snapshot or None."""
+    snapshot = db.query(models.GraphSnapshot)\
+                 .order_by(desc(models.GraphSnapshot.created_at))\
+                 .first()
+    if snapshot:
+        return snapshot.binary_data
+    return None
 
 # --- CATALOG SEEDING ---
 

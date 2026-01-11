@@ -22,6 +22,11 @@ PYBIND11_MODULE(recommender, m) {
         // UPDATED: recommend now takes a list of ints
         .def("recommend", &RecommendationEngine::recommend, 
              py::arg("target_user_id"), py::arg("k"), py::arg("preferred_genres") = std::vector<int>())
+
+        // --- NEW: Save to disk bindings ---     
+        .def("save_model", &RecommendationEngine::save_model)
+        .def("load_model", &RecommendationEngine::load_model)
+
         .def("rebuild", &RecommendationEngine::rebuild)
         .def("get_user_count", &RecommendationEngine::get_user_count)
         .def("get_item_count", &RecommendationEngine::get_item_count)

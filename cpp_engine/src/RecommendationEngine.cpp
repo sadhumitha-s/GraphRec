@@ -110,3 +110,102 @@ long RecommendationEngine::get_edge_count() const {
     for(auto const& [key, val] : user_items) edges += val.size();
     return edges;
 }
+
+// --- NEW: Save Memory to Disk ---
+void RecommendationEngine::save_model(const std::string& filepath) {
+    std::ofstream out(filepath, std::ios::binary);
+    if (!out) {
+        std::cerr << "Error: Cannot open file for writing: " << filepath << std::endl;
+        return;
+    }
+
+    // 1. Save Genres
+    size_t genre_size = item_genres.size();
+    out.write(reinterpret_cast<const char*>(&genre_size), sizeof(genre_size));
+    for (const auto& [item, genre] : item_genres) {
+        out.write(reinterpret_cast<const char*>(&item), sizeof(item));
+        out.write(reinterpret_cast<const char*>(&genre), sizeof(genre));
+    }
+
+    // 2. Save User Graph
+    size_t user_size = user_items.size();
+    out.write(reinterpret_cast<const char*>(&user_size), sizeof(user_size));
+    for (const auto& [user, items] : user_items) {
+        out.write(reinterpret_cast<const char*>(&user), sizeof(user));
+        size_t vec_size = items.size();
+        out.write(reinterpret_cast<const char*>(&vec_size), sizeof(vec_size));
+        if (vec_size > 0) {
+            out.write(reinterpret_cast<const char*>(items.data()), vec_size * sizeof(std::pair<int, long>));
+        }
+    }
+
+    // 3. Save Item Graph
+    size_t item_size = item_users.size();
+    out.write(reinterpret_cast<const char*>(&item_size), sizeof(item_size));
+    for (const auto& [item, users] : item_users) {
+        out.write(reinterpret_cast<const char*>(&item), sizeof(item));
+        size_t vec_size = users.size();
+        out.write(reinterpret_cast<const char*>(&vec_size), sizeof(vec_size));
+        if (vec_size > 0) {
+            out.write(reinterpret_cast<const char*>(users.data()), vec_size * sizeof(std::pair<int, long>));
+        }
+    }
+    
+    out.close();
+    std::cout << "[C++] Graph saved to " << filepath << std::endl;
+}
+
+// --- NEW: Load Memory from Disk ---
+void RecommendationEngine::load_model(const std::string& filepath) {
+    std::ifstream in(filepath, std::ios::binary);
+    if (!in) throw std::runtime_error("Cannot open file for reading");
+
+    user_items.clear();
+    item_users.clear();
+    item_genres.clear();
+
+    // 1. Load Genres
+    size_t genre_size;
+    in.read(reinterpret_cast<char*>(&genre_size), sizeof(genre_size));
+    for (size_t i = 0; i < genre_size; ++i) {
+        int item, genre;
+        in.read(reinterpret_cast<char*>(&item), sizeof(item));
+        in.read(reinterpret_cast<char*>(&genre), sizeof(genre));
+        item_genres[item] = genre;
+    }
+
+    // 2. Load User Graph
+    size_t user_size;
+    in.read(reinterpret_cast<char*>(&user_size), sizeof(user_size));
+    for (size_t i = 0; i < user_size; ++i) {
+        int user;
+        size_t vec_size;
+        in.read(reinterpret_cast<char*>(&user), sizeof(user));
+        in.read(reinterpret_cast<char*>(&vec_size), sizeof(vec_size));
+        
+        std::vector<std::pair<int, long>> items(vec_size);
+        if (vec_size > 0) {
+            in.read(reinterpret_cast<char*>(items.data()), vec_size * sizeof(std::pair<int, long>));
+        }
+        user_items[user] = std::move(items);
+    }
+
+    // 3. Load Item Graph
+    size_t item_size;
+    in.read(reinterpret_cast<char*>(&item_size), sizeof(item_size));
+    for (size_t i = 0; i < item_size; ++i) {
+        int item;
+        size_t vec_size;
+        in.read(reinterpret_cast<char*>(&item), sizeof(item));
+        in.read(reinterpret_cast<char*>(&vec_size), sizeof(vec_size));
+        
+        std::vector<std::pair<int, long>> users(vec_size);
+        if (vec_size > 0) {
+            in.read(reinterpret_cast<char*>(users.data()), vec_size * sizeof(std::pair<int, long>));
+        }
+        item_users[item] = std::move(users);
+    }
+
+    in.close();
+    std::cout << "[C++] Graph loaded from " << filepath << std::endl;
+}
