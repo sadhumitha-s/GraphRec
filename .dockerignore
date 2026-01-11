@@ -1,0 +1,54 @@
+--- Version Control ---
+
+.git
+.gitignore
+
+--- C++ Build Artifacts (CRITICAL) ---
+
+Ignores the Mac-specific build folder so Docker makes a clean Linux one
+
+cpp_engine/build/
+**/CMakeCache.txt
+**/CMakeFiles
+
+--- Compiled Binaries ---
+
+Ignores local Mac/Windows binaries so they don't break Linux
+
+*.so
+*.dylib
+*.dll
+*.pyd
+
+Explicitly ignore the one in backend
+
+backend/recommender*.so
+
+--- Python Junk ---
+
+**/pycache
+**/.pyc
+**/.pyo
+**/venv
+**/env
+**/.venv
+
+--- Local Databases ---
+
+Don't copy your local test DB into the container
+
+*.db
+*.sqlite3
+backend/graphrec.db
+
+--- Configuration & Secrets ---
+
+.env
+.env.local
+
+--- IDE & OS Junk ---
+
+.vscode
+.idea
+.DS_Store
+Thumbs.db

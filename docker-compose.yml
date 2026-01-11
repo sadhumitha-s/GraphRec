@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # 1. Redis Cache
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  # 2. Hybrid Backend
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Connect to the internal 'redis' service name
+      - REDIS_URL=redis://redis:6379/0
+      # If you want to use Cloud DB, uncomment next line:
+      # - DATABASE_URL=${DATABASE_URL} 
+    depends_on:
+      - redis
+    volumes:
+      # Map your local Python code so edits update live (Hot Reload)
+      # We ONLY map the /app/app folder to protect the compiled .so file in root
+      - ./backend/app:/app/app
+
+  # 3. Frontend
+  frontend:
+    image: python:3.10-slim
+    working_dir: /site
+    volumes:
+      - ./frontend:/site
+    # Simple trick to host static files
+    command: python3 -m http.server 3000
+    ports:
+      - "3000:3000"

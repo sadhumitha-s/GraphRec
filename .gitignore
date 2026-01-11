@@ -1,23 +1,51 @@
+--- Secrets & Config ---
+
+.env
+.env.local
+.DS_Store
+
 --- Python ---
 
 pycache/
 *.py[cod]
 *$py.class
 venv/
-.env
+env/
+.venv/
 
---- C++ Build Artifacts ---
+--- C++ Build Artifacts (Machine Specific) ---
 
 cpp_engine/build/
-*.so
-*.pyd
-*.dylib
+**/CMakeCache.txt
+**/CMakeFiles
+*.cmake
+Makefile
 
---- Database ---
+--- Compiled Binaries ---
+
+*.so
+*.dylib
+*.dll
+*.pyd
+
+Specifically the engine inside backend
+
+backend/recommender*.so
+
+--- Data & Databases ---
 
 *.db
 *.sqlite3
+backend/graphrec.db
 
---- OS Specific ---
+--- NEW: Binary Graph Snapshot ---
 
-.DS_Store
+Do not push the memory dump
+
+graph.bin
+backend/graph.bin
+
+--- IDEs ---
+
+.vscode
+.idea
