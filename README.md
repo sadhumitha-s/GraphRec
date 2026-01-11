@@ -60,20 +60,28 @@ docker-compose up \--build
 ### **Option B: Manual Setup (Mac/Linux)**
 
 1. **Compile the C++ Engine**  
-   cd cpp\_engine/build  
-   cmake ..  
-   make  
-   mv recommender\*.so ../../backend/
+```bash
+cd cpp_engine/build  
+make  
+mv recommender\*.so ../../backend/
+```
 
 2. Start Infrastructure  
-   Ensure Redis is running in a separate terminal (redis-server).
+   Ensure Redis is running in a separate terminal.
+```bash
+redis-server
+```  
 
 3. **Start Backend**  
-   cd backend  
-   uvicorn app.main:app \--reload
+```bash
+cd backend  
+uvicorn app.main:app \--reload
+```  
 
 4. **Start Frontend**  
-   cd frontend  
-   python3 \-m http.server 3000
+```bash
+cd frontend  
+python3 \-m http.server 3000
+```
 
 **Access the App:** Go to [http://localhost:3000](https://www.google.com/search?q=http://localhost:3000)
