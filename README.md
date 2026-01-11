@@ -84,4 +84,4 @@ cd frontend
 python3 \-m http.server 3000
 ```
 
-**Access the App:** Go to [http://localhost:3000](https://www.google.com/search?q=http://localhost:3000)
+**Access the App:** Go to http://localhost:3000
