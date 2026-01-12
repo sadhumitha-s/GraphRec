@@ -1,0 +1,16 @@
+services:
+  # This tells Render: "I have a Docker app"
+  - type: web
+    name: graphrec-engine
+    env: docker
+    plan: free
+    
+    # Render needs to know which port your Docker container listens on
+    envVars:
+      - key: PORT
+        value: 8000
+      # Render will ask you for these values in the dashboard
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
