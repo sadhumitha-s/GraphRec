@@ -1,36 +1,36 @@
 version: '3.8'
 
 services:
-  # 1. Redis Cache
+  # 1. Local Redis (Runs automatically, used only if .env points to it)
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
 
-  # 2. Hybrid Backend
-  backend:
+  # 2. Main App (Backend + Frontend)
+  app:
     build: .
+    container_name: graphrec_container
     ports:
       - "8000:8000"
+    
+    # Load secrets from .env (Supabase/Upstash)
+    env_file:
+      - backend/.env
+    
     environment:
-      # Connect to the internal 'redis' service name
-      - REDIS_URL=redis://redis:6379/0
-      # If you want to use Cloud DB, uncomment next line:
-      # - DATABASE_URL=${DATABASE_URL} 
+      - PYTHONUNBUFFERED=1
+      # HYBRID MAGIC:
+      # 1. Tries to use REDIS_URL from .env (Upstash)
+      # 2. If missing, defaults to 'redis://redis:6379/0' (The local container above)
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      
     depends_on:
       - redis
+      
     volumes:
-      # Map your local Python code so edits update live (Hot Reload)
-      # We ONLY map the /app/app folder to protect the compiled .so file in root
-      - ./backend/app:/app/app
-
-  # 3. Frontend
-  frontend:
-    image: python:3.10-slim
-    working_dir: /site
-    volumes:
-      - ./frontend:/site
-    # Simple trick to host static files
-    command: python3 -m http.server 3000
-    ports:
-      - "3000:3000"
+      # Map local folders for Hot Reloading (Edits on Mac = Edits in Docker)
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+      # Exclude the compiled .so file so Mac binaries don't break Linux
+      - /app/backend/recommender*.so

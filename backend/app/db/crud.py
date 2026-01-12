@@ -22,7 +22,7 @@ def get_genre_id(category: str) -> int:
 # --- INTERACTION HELPERS ---
 
 def create_interaction(db: Session, user_id: int, item_id: int):
-    # Check for duplicates
+    # Check for duplicates to keep data clean
     existing = db.query(models.Interaction).filter(
         and_(models.Interaction.user_id == user_id, models.Interaction.item_id == item_id)
     ).first()
@@ -51,10 +51,12 @@ def get_all_interactions(db: Session):
     return db.query(models.Interaction).all()
 
 def get_item_map(db: Session):
+    """Returns dict {id: {title, category}} for frontend display"""
     items = db.query(models.Item).all()
     return {i.id: {"title": i.title, "category": i.category} for i in items}
 
 def get_user_interacted_ids(db: Session, user_id: int):
+    """Returns a Set of item IDs the user has interacted with"""
     results = db.query(models.Interaction.item_id)\
                 .filter(models.Interaction.user_id == user_id)\
                 .all()
@@ -63,6 +65,7 @@ def get_user_interacted_ids(db: Session, user_id: int):
 # --- FALLBACK HELPERS ---
 
 def get_popular_item_ids(db: Session, limit: int):
+    """Returns item IDs sorted by popularity (interaction count)"""
     results = db.query(models.Interaction.item_id)\
                 .group_by(models.Interaction.item_id)\
                 .order_by(func.count(models.Interaction.item_id).desc())\
@@ -71,12 +74,17 @@ def get_popular_item_ids(db: Session, limit: int):
     return [r[0] for r in results]
 
 def get_default_items(db: Session, limit: int):
+    """Returns a default list of items (e.g., newest)"""
     items = db.query(models.Item.id).limit(limit).all()
     return [i.id for i in items]
 
 # --- PREFERENCE HELPERS ---
 
 def set_user_preferences(db: Session, user_id: int, genre_names: list[str]):
+    """
+    Updates user genre preferences.
+    Deletes old preferences and inserts new ones.
+    """
     # 1. Delete existing preferences for this user
     db.query(models.UserPreference).filter(models.UserPreference.user_id == user_id).delete()
     
@@ -94,7 +102,7 @@ def get_user_preference_ids(db: Session, user_id: int):
                 .all()
     return [r[0] for r in results]
 
-# --- NEW: SNAPSHOT HELPERS ---
+# --- SNAPSHOT HELPERS (Supabase Compatible) ---
 
 def save_snapshot(db: Session, binary_content: bytes):
     """
@@ -105,6 +113,7 @@ def save_snapshot(db: Session, binary_content: bytes):
     db.query(models.GraphSnapshot).delete()
     
     # 2. Add new snapshot
+    # Uses 'binary_data' column (BYTEA) which we added to Supabase
     snapshot = models.GraphSnapshot(binary_data=binary_content)
     db.add(snapshot)
     db.commit()
@@ -123,6 +132,7 @@ def get_latest_snapshot(db: Session):
 def seed_items(db: Session):
     """
     Smart Seeding: Checks if items exist, and adds them if missing.
+    Populates the DB with the Movie Catalog.
     """
     catalog = [
         {"id": 101, "title": "The Matrix", "category": "Sci-Fi"},

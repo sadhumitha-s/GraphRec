@@ -1,37 +1,49 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 import time
-from ..db import session, crud
-from ..core.recommender import get_engine
-from ..core import redis_client
+import json
+
+from app.db import session, crud
+from app.core.recommender import get_engine
+from app.utils.redis import redis_client
 
 router = APIRouter()
 
+# --- Response Models ---
 class ItemResponse(BaseModel):
     id: int
     title: str
     category: str
-    reason: str 
+    reason: str  # e.g., "Graph-Based", "Trending", "New Arrival"
 
 class RecResponse(BaseModel):
     user_id: int
     recommendations: List[ItemResponse]
     latency_ms: float
-    source: str = "Compute"
+    source: str = "Hybrid" # Changed from "Compute" to "Hybrid" since we mix sources
 
 class PrefRequest(BaseModel):
     user_id: int
     genres: List[str]
 
+# --- Endpoints ---
+
 @router.post("/preferences")
 def save_preferences(data: PrefRequest, db: Session = Depends(session.get_db)):
     crud.set_user_preferences(db, data.user_id, data.genres)
-    redis_client.invalidate_user_cache(data.user_id)
+    
+    # Invalidate Cache
+    if redis_client:
+        try:
+            for key in redis_client.scan_iter(f"rec:{data.user_id}:*"):
+                redis_client.delete(key)
+        except Exception as e:
+            print(f"⚠️ Redis Invalidation Error: {e}")
+
     return {"status": "success", "msg": "Preferences saved"}
 
-# UPDATED: Added 'algo' query parameter
 @router.get("/{user_id}", response_model=RecResponse)
 def get_recommendations(
     user_id: int, 
@@ -40,70 +52,115 @@ def get_recommendations(
     db: Session = Depends(session.get_db)
 ):
     t0 = time.time()
+    cache_key = f"rec:{user_id}:{algo}:{k}"
 
-    # Note: We append algo to cache key so different algos don't conflict
-    # But for simplicity, we skip cache check for PPR testing
-    if algo == "bfs":
-        cached_recs = redis_client.get_cached_recommendations(user_id)
-        if cached_recs is not None:
-            t1 = time.time()
-            return {
-                "user_id": user_id,
-                "recommendations": cached_recs,
-                "latency_ms": (t1 - t0) * 1000,
-                "source": "Redis Cache ⚡"
-            }
+    # 1. CHECK CACHE (Only for BFS to allow PPR experiments)
+    if algo == "bfs" and redis_client:
+        try:
+            cached_data = redis_client.get(cache_key)
+            if cached_data:
+                results = json.loads(cached_data)
+                t1 = time.time()
+                return {
+                    "user_id": user_id,
+                    "recommendations": results,
+                    "latency_ms": (t1 - t0) * 1000,
+                    "source": "Redis Cache ⚡"
+                }
+        except Exception:
+            pass
 
+    # 2. PREPARE DATA
     engine = get_engine()
     seen_ids = crud.get_user_interacted_ids(db, user_id)
     pref_ids = crud.get_user_preference_ids(db, user_id)
+    
+    # We use a set to ensure we don't recommend the same item twice via different strategies
+    recommended_ids = set() 
+    final_items_meta = [] # List of dicts: {id, reason}
 
-    # --- ALGORITHM SWITCHING ---
-    if algo == "ppr":
-        # 1. Personalized PageRank (Monte Carlo)
-        # 10,000 walks, depth 2 (User -> Item -> User -> Item)
-        raw_recs = engine.recommend_ppr(user_id, k + 5, 10000, 2)
-        strategy = "PageRank (Random Walk)"
-    else:
-        # 2. Weighted BFS (Time Decay + Genre Boost)
-        raw_recs = engine.recommend(user_id, k, pref_ids)
-        strategy = "Graph-Based (BFS)"
+    # 3. STRATEGY A: THE GRAPH ENGINE (BFS / PPR)
+    # We try to get as many as possible from here first.
+    graph_candidates = []
+    graph_strategy_name = "Graph-Based"
 
-    # Filter seen
-    rec_ids = [pid for pid in raw_recs if pid not in seen_ids][:k]
+    if algo == "ppr" and hasattr(engine, "recommend_ppr"):
+        graph_candidates = engine.recommend_ppr(user_id, k + 10, 10000, 2)
+        graph_strategy_name = "PageRank"
+    elif hasattr(engine, "recommend"):
+        # Weighted BFS
+        graph_candidates = engine.recommend(user_id, k, pref_ids)
+        graph_strategy_name = "Graph BFS"
 
-    # Fallbacks (Waterfall)
-    if not rec_ids:
-        candidates = crud.get_popular_item_ids(db, limit=k + len(seen_ids) + 5)
-        rec_ids = [pid for pid in candidates if pid not in seen_ids][:k]
-        if rec_ids: strategy = "Global Trending (Popular)"
+    # Filter Graph Results
+    for pid in graph_candidates:
+        # Handle if engine returns (id, score) tuple
+        clean_id = pid[0] if isinstance(pid, (list, tuple)) else pid
+        
+        if clean_id not in seen_ids and clean_id not in recommended_ids:
+            recommended_ids.add(clean_id)
+            final_items_meta.append({"id": clean_id, "reason": graph_strategy_name})
+            
+            if len(final_items_meta) >= k:
+                break
 
-    if not rec_ids:
-        candidates = crud.get_default_items(db, limit=k + len(seen_ids) + 5)
-        rec_ids = [did for did in candidates if did not in seen_ids][:k]
-        strategy = "New Arrivals (Catalog)"
+    # 4. STRATEGY B: FALLBACK TO POPULAR (Trending)
+    # If graph didn't provide enough items (e.g. sparse graph), fill gaps with popular items.
+    if len(final_items_meta) < k:
+        needed = k - len(final_items_meta)
+        # Fetch extra popular items to account for 'seen' overlap
+        popular_candidates = crud.get_popular_item_ids(db, limit=needed + len(seen_ids) + 5)
+        
+        for pid in popular_candidates:
+            if pid not in seen_ids and pid not in recommended_ids:
+                recommended_ids.add(pid)
+                final_items_meta.append({"id": pid, "reason": "Global Trending"})
+                
+                if len(final_items_meta) >= k:
+                    break
 
-    # Hydrate
+    # 5. STRATEGY C: FALLBACK TO NEWEST (Catalog)
+    # If still not enough (e.g. fresh DB with no interactions), just show items.
+    if len(final_items_meta) < k:
+        needed = k - len(final_items_meta)
+        default_candidates = crud.get_default_items(db, limit=needed + len(seen_ids) + 10)
+        
+        for pid in default_candidates:
+            if pid not in seen_ids and pid not in recommended_ids:
+                recommended_ids.add(pid)
+                final_items_meta.append({"id": pid, "reason": "New Arrival"})
+                
+                if len(final_items_meta) >= k:
+                    break
+
+    # 6. HYDRATE WITH TITLES
     item_map = crud.get_item_map(db)
     results = []
-    for item_id in rec_ids:
-        meta = item_map.get(item_id, {"title": f"Unknown {item_id}", "category": "Unknown"})
+    
+    for meta in final_items_meta:
+        i_id = meta["id"]
+        reason = meta["reason"]
+        details = item_map.get(i_id, {"title": f"Item {i_id}", "category": "Unknown"})
+        
         results.append({
-            "id": item_id,
-            "title": meta["title"],
-            "category": meta["category"],
-            "reason": strategy
+            "id": i_id,
+            "title": details["title"],
+            "category": details["category"],
+            "reason": reason
         })
 
     t1 = time.time()
 
-    # Only cache standard BFS
-    if results and algo == "bfs":
-        redis_client.set_cached_recommendations(user_id, results)
+    # 7. UPDATE CACHE
+    if results and algo == "bfs" and redis_client:
+        try:
+            redis_client.setex(cache_key, 3600, json.dumps(results))
+        except Exception as e:
+            print(f"⚠️ Redis Write Error: {e}")
 
     return {
         "user_id": user_id,
         "recommendations": results,
         "latency_ms": (t1 - t0) * 1000,
-        "source": f"C++ Engine ({algo.upper()}) ⚙️"
+        "source": "Hybrid (Graph + Fallback)"
     }

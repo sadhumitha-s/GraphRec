@@ -3,26 +3,21 @@
 .git
 .gitignore
 
---- C++ Build Artifacts (CRITICAL) ---
-
-Ignores the Mac-specific build folder so Docker makes a clean Linux one
+--- C++ Build Artifacts (Local) ---
 
 cpp_engine/build/
 **/CMakeCache.txt
 **/CMakeFiles
 
---- Compiled Binaries ---
+--- Compiled Binaries (Local) ---
 
-Ignores local Mac/Windows binaries so they don't break Linux
+Ignore local Mac/Windows binaries so they don't break Linux
 
 *.so
 *.dylib
 *.dll
-*.pyd
-
-Explicitly ignore the one in backend
-
-backend/recommender*.so
+.pyd
+backend/.so
 
 --- Python Junk ---
 
@@ -35,16 +30,19 @@ backend/recommender*.so
 
 --- Local Databases ---
 
-Don't copy your local test DB into the container
+We ignore these so the container starts fresh OR uses the volume map
 
 *.db
 *.sqlite3
 backend/graphrec.db
 
---- Configuration & Secrets ---
+--- Secrets ---
+
+We exclude .env from the image build (it is injected by compose instead)
 
 .env
 .env.local
+backend/.env
 
 --- IDE & OS Junk ---
 

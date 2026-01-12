@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GraphRec - Results</title>
     <!-- Version bump to force refresh -->
-    <link rel="stylesheet" href="css/styles.css?v=5">
+    <link rel="stylesheet" href="css/styles.css?v=6">
 </head>
 <body>
 
@@ -125,6 +125,9 @@
     }
 
     window.addEventListener('userChanged', renderRecommendations);
+    
+    // --- FIX: Run immediately on page load ---
+    renderRecommendations();
     renderMetrics();
 </script>
 

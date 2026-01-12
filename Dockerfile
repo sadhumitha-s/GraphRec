@@ -1,5 +1,5 @@
 # --- STAGE 1: Builder (Compiles C++) ---
-FROM python:3.10-slim as builder
+FROM python:3.11-slim as builder
 
 # 1. Install System Compilers
 RUN apt-get update && apt-get install -y \
@@ -15,38 +15,44 @@ RUN pip install --no-cache-dir pybind11
 WORKDIR /build
 COPY cpp_engine/ ./cpp_engine/
 
-# 4. Clean previous builds (Vital for preventing Mac vs Linux conflicts)
+# 4. Clean & Build
 RUN rm -rf cpp_engine/build && mkdir -p cpp_engine/build
-
-# 5. Compile for Linux
 WORKDIR /build/cpp_engine/build
 
-# We explicitly calculate the pybind11 directory using Python and pass it to CMake
+# 5. Compile for Linux
 RUN cmake .. \
     -DPYTHON_EXECUTABLE=$(which python3) \
     -Dpybind11_DIR=$(python3 -m pybind11 --cmakedir) \
     && make
 
-# --- STAGE 2: Runner (Runs Python) ---
-FROM python:3.10-slim
+# --- STAGE 2: Runner (Runs Python App) ---
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install Python Deps
+# 1. Install System Dependencies
+# libstdc++6 and libgomp1 are vital for C++ modules
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    libstdc++6 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Install Python Dependencies
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy Backend Code
-COPY backend/ .
-
-# Copy Compiled C++ Engine from Stage 1
-COPY --from=builder /build/cpp_engine/build/recommender*.so ./
-
-# Copy Frontend Code
+# 3. Copy Code Structure
+COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
-# Expose Port
-EXPOSE 8000
+# 4. Copy Compiled C++ Engine (THE FIX)
+# We copy the binary to the SYSTEM Python path (/usr/local/lib/python3.11/site-packages)
+# instead of ./backend/. This prevents the docker-compose volume mount from hiding it.
+COPY --from=builder /build/cpp_engine/build/recommender*.so /usr/local/lib/python3.11/site-packages/
 
-# Start App
+# 5. Set Working Directory to Backend
+WORKDIR /app/backend
+
+# 6. Run the Server
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

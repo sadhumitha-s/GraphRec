@@ -1,4 +1,6 @@
-const API_URL = "";
+// Set API_URL to empty string.
+// This tells the browser to use the current host (e.g. localhost:8000) automatically.
+const API_URL = ""; 
 
 const AppState = {
     userId: localStorage.getItem('graph_user_id') || 1,
@@ -24,7 +26,7 @@ async function fetchItems() {
     try {
         const res = await fetch(`${API_URL}/items`);
         return await res.json();
-    } catch (e) { return {}; }
+    } catch (e) { return []; }
 }
 
 async function toggleInteraction(itemId, isUnlike) {
