@@ -1,12 +1,28 @@
-# **Graph-based Recommendations System**
+# **GraphRec Engine (Hybrid C++ & Python)**  
+A high-performance Recommendation Engine built with a hybrid Architecture. It combines the speed of a custom C++ Graph Engine for traversal algorithms (BFS, PageRank) with the flexibility of Python/FastAPI for the web layer.
 
+[Live Demo](https://graphrec-engine.onrender.com)  
+*(Note: App hosted on free tier, may spin down after inactivity. Please wait 30s for wakeup!)*
+
+## Features
 * **Hybrid Architecture:** FastAPI orchestrates logic, while a compiled C++17 extension handles $O(1)$ graph mutations.  
-* **Dual Algorithms:** Switches between **Weighted BFS** (Local/Deterministic) and **Personalized PageRank** (Global/Probabilistic) strategies.  
-* **Redis Caching:** Implements a 'Cache-Aside' pattern to serve frequent recommendation requests in \<1ms.  
-* **Instant Startup:** Serializes the C++ graph to a binary blob (graph.bin), reducing cold boot time from $O(E)$ to $O(1)$ disk I/O.  
-* **Content-Aware Scoring:** Dynamically boosts graph edge weights based on user genre preferences.  
-* **Waterfall Strategy:** Cascades from Graph Algo $\\to$ Global Trending $\\to$ Catalog to ensure zero empty states.  
-* **Cloud-Ready:** seamless integration with PostgreSQL (Supabase) and Docker containerization.
+* **Dual Algorithms:** switches between **Weighted BFS** (Local/Deterministic) and **Personalized PageRank** (Global/Probabilistic) strategies.  
+* **Smart Caching:** implements a 'Cache-Aside' pattern using Redis (Local or Upstash) to serve frequent requests in <1ms, with automatic SSL handling for cloud environments.  
+* **Self-Healing State:** serializes the C++ graph to a binary blob (graph.bin) for $O(1)$ startup.Automatically detects corruption/empty states and falls back to a **SQL Rebuild** to ensure data integrity.  
+* **Content-Aware Scoring:** dynamically boosts graph edge weights based on user genre preferences.  
+* **Waterfall Strategy:** cascades from Graph Algo $\\to$ Global Trending $\\to$ Catalog to ensure zero empty states.
+* **Graceful Persistence:** automatically captures graph state changes on server shutdown (SIGTERM), syncing the in-memory graph to Postgres to survive container restarts.
+* **Cloud-Native:** fully Dockerized single-container architecture that auto-configures for Local (SQLite/Local Redis) or Production (Supabase/Upstash) environments via environment variables.  
+
+---  
+
+## Architechture  
+The system uses a single-container hybrid approach for maximum efficiency:  
+1. **Compute Layer (C++):** A custom-built graph engine (using Pybind11) handles memory-intensive graph traversals (BFS, Personalized PageRank) in milliseconds.  
+2. **API Layer (Python):** FastAPI handles HTTP requests, authentication, and orchestrates the C++ module.
+3. **Storage (Supabase/Postgres):** Persists all user interactions (Likes/Clicks).
+4. **Cache (Upstash/Redis):** Caches recommendation results for instant retrieval.
+5. **State Management:** The graph state is computed in memory and snapshotted to the database on server shutdown.
   
 ---  
 
@@ -14,33 +30,35 @@
 ```pqsql
 graphrec-engine/  
 │  
-├── .dockerignore           \# Docker build exclusions  
-├── Dockerfile              \# Multi-stage build (Compiles C++ & Runs Python)  
-├── docker-compose.yml      \# Orchestrates Backend, Frontend, and Redis  
-│  
-├── backend/                \# FastAPI Orchestrator  
-│   ├── recommender\*.so     \# Compiled C++ Module  
-│   ├── graph.bin           \# Binary Graph Snapshot (Fast Load)  
+├── .dockerignore           # Docker build exclusions  
+├── Dockerfile              # Multi-stage build (Compiles C++ & Runs Python)  
+├── docker-compose.yml      # Orchestrates Backend, Frontend, and Redis  
+│
+├── render.yaml             # Render.com Deployment Blueprint
+│
+├── backend/                # FastAPI Orchestrator  
+│   ├── recommender\*.so    # Compiled C++ Module  
+│   ├── graph.bin           # Binary Graph Snapshot (Fast Load)  
 │   │  
 │   └── app/  
-│       ├── main.py         \# App Entry: Handles Binary Loading & DB Sync  
-│       ├── config.py       \# Configures SQLite/Postgres & Redis URLs  
-│       ├── api/            \# Endpoints (Interactions, Recommendations)  
-│       ├── core/           \# Redis Client & C++ Wrapper  
-│       └── db/             \# SQL Models & CRUD  
+│       ├── main.py         # App Entry: Handles Binary Loading & DB Sync  
+│       ├── config.py       # Configures SQLite/Postgres & Redis URLs  
+│       ├── api/            # Endpoints (Interactions, Recommendations)  
+│       ├── core/           # Redis Client & C++ Wrapper  
+│       └── db/             # SQL Models & CRUD  
 │  
-├── cpp\_engine/             \# High-Performance Core  
-│   ├── include/            \# Headers  
+├── cpp\_engine/            # High-Performance Core  
+│   ├── include/            # Headers  
 │   └── src/  
-│       ├── RecommendationEngine.cpp \# BFS, PageRank, & Serialization Logic  
-│       └── bindings.cpp    \# Pybind11 hooks  
+│       ├── RecommendationEngine.cpp  # BFS, PageRank, & Serialization Logic  
+│       └── bindings.cpp    # Pybind11 hooks  
 │  
-├── frontend/               \# Client Application  
-│   ├── index.html          \# Main UI: Dashboard & Glassmorphism Styles  
+├── frontend/               # Client Application  
+│   ├── index.html          # Main UI
 │   ├── recommendations.html  
-│   └── js/app.js           \# API Logic & State Management  
+│   └── js/app.js           # API Logic & State Management  
 │  
-└── docs/                   \# Documentation
+└── docs/                   # Documentation
     ├── architecture.md             
     ├── algorithms.md               
     └── complexity.md               
@@ -48,40 +66,25 @@ graphrec-engine/
   
 ---  
 
-## **Quick Start**
-
-### **Option A: Docker (Recommended)**
-
-Builds the C++ engine inside Linux, sets up Redis, and starts the app automatically.
-
-docker-compose up \--build
-  
-  
-### **Option B: Manual Setup (Mac/Linux)**
-
-1. **Compile the C++ Engine**  
+## **Quick Start(Local Docker)**  
+**1. Clone & Configure**  
 ```bash
-cd cpp_engine/build  
-make  
-mv recommender\*.so ../../backend/
+git clone [https://github.com/YOUR_USERNAME/GraphRec.git](https://github.com/YOUR_USERNAME/GraphRec.git)
+cd GraphRec
+
+# Create environment file
+touch backend/.env
 ```
-
-2. Start Infrastructure  
-   Ensure Redis is running in a separate terminal.
+**2. Set up Environment Variables**  
+Add your credentials to `backend/.env`  
 ```bash
-redis-server
-```  
-
-3. **Start Backend**  
-```bash
-cd backend  
-uvicorn app.main:app \--reload
-```  
-
-4. **Start Frontend**  
-```bash
-cd frontend  
-python3 \-m http.server 3000
+DATABASE_URL="postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION][.pooler.supabase.com:6543/postgres](https://.pooler.supabase.com:6543/postgres)"
+REDIS_URL="redis://localhost:6379/0" # Or your Upstash URL
 ```
+**3. Run**  
+```bash
+docker-compose up --build
+```
+Access the app at http://localhost:8000.  
 
-**Access the App:** Go to http://localhost:3000
+  
