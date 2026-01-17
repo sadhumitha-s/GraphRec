@@ -1,5 +1,5 @@
 # --- STAGE 1: Builder (Compiles C++) ---
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # 1. Install System Compilers
 RUN apt-get update && apt-get install -y \
