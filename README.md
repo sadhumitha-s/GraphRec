@@ -1,5 +1,5 @@
 # **GraphRec Engine (Hybrid C++ & Python)**  
-A high-performance Recommendation Engine built with a hybrid Architecture. It combines the speed of a custom C++ Graph Engine for traversal algorithms (BFS, PageRank) with the flexibility of Python/FastAPI for the web layer.
+A high-performance Recommendation Engine built with a hybrid architecture. It combines the speed of a custom C++ Graph Engine for traversal algorithms (BFS, PageRank) with the flexibility of Python/FastAPI for the web layer.
 
 [Live Demo](https://graphrec-engine.onrender.com)  
 *(Note: App hosted on free tier, may spin down after inactivity. Please wait 30s for wakeup!)*
