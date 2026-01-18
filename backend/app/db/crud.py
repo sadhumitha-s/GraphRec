@@ -124,7 +124,12 @@ def seed_items(db: Session):
         {"id": 118, "title": "Parasite", "category": "Drama"},
         {"id": 119, "title": "Coco", "category": "Animation"},
         {"id": 120, "title": "Dune", "category": "Sci-Fi"},
-    ]
+        {"id": 121, "title": "Oppenheimer", "category": "Drama"},
+        {"id": 122, "title": "Barbie", "category": "Comedy"},
+        {"id": 123, "title": "Killers of the Flower Moon", "category": "Crime"},
+        {"id": 124, "title": "Insidious", "category": "Horror"},
+    ]    
+    
     for item_data in catalog:
         exists = db.query(models.Item).filter(models.Item.id == item_data["id"]).first()
         if not exists:

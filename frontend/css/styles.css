@@ -272,7 +272,23 @@ input:focus, select:focus { border-color: var(--accent); }
     align-items: center;
     gap: 20px;
 }
-.mini-poster { width: 60px; height: 60px; border-radius: 12px; background: #333; flex-shrink: 0; }
+.mini-poster { 
+    width: 150px; 
+    height: 100px; 
+    border-radius: 12px; 
+    background: #333; 
+    flex-shrink: 0;
+}
+
+/* Mini-poster category colors */
+.mini-poster.Sci-Fi { background: linear-gradient(135deg, #020617, #0891b2); }
+.mini-poster.Action { background: linear-gradient(135deg, #450a0a, #ea580c); }
+.mini-poster.Horror { background: linear-gradient(135deg, #000000, #991b1b); }
+.mini-poster.Comedy { background: linear-gradient(135deg, #422006, #ca8a04); }
+.mini-poster.Drama { background: linear-gradient(135deg, #170536, #7e22ce); }
+.mini-poster.Animation { background: linear-gradient(135deg, #064e3b, #34d399); }
+.mini-poster.Crime { background: linear-gradient(135deg, #0f172a, #475569); }
+
 .badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-muted); }
 
 /* --- ANIMATIONS --- */
