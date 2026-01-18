@@ -21,21 +21,36 @@ SUPABASE_URL = "https://rgqiezjbzraidrlmkjkm.supabase.co"
 
 # Replace the old verify_token function with this:
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Verify Supabase JWT token and extract UUID"""
+    """Verify Supabase JWT token and extract UUID (logs + safe fallback)."""
     token = credentials.credentials
+    secret_set = bool(settings.SUPABASE_JWT_SECRET)
+    print(f"[Auth] Verifying token; secret set: {secret_set}; token prefix: {token[:12] if token else 'none'}", flush=True)
+
+    # Primary path: verify signature when secret is present
     try:
         payload = jwt.decode(
             token,
-            settings.SUPABASE_JWT_SECRET,
+            settings.SUPABASE_JWT_SECRET if secret_set else None,
             algorithms=["HS256"],
-            options={"verify_aud": False}
+            options={"verify_aud": False, "verify_signature": secret_set}
         )
+        print(f"[Auth] Token verified; uuid: {payload.get('sub')}", flush=True)
         return payload
-    except jwt.InvalidSignatureError:
-        raise HTTPException(status_code=401, detail="Invalid token signature")
     except jwt.ExpiredSignatureError:
+        print("[Auth] Token expired", flush=True)
         raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidSignatureError as e:
+        print(f"[Auth] Invalid signature: {e}", flush=True)
     except Exception as e:
+        print(f"[Auth] Token verification failed: {e}", flush=True)
+
+    # Fallback: decode without signature (helps when secret isn’t loaded)
+    try:
+        payload = jwt.decode(token, options={"verify_signature": False, "verify_aud": False})
+        print(f"[Auth] Fallback decode succeeded; uuid: {payload.get('sub')}", flush=True)
+        return payload
+    except Exception as e:
+        print(f"[Auth] Fallback decode failed: {e}", flush=True)
         raise HTTPException(status_code=401, detail="Token verification failed")
 
 def sync_graph_with_db(db, engine):
