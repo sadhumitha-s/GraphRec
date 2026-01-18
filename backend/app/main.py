@@ -4,7 +4,7 @@ from fastapi import FastAPI, Response, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials  # ← FIXED
 from contextlib import asynccontextmanager
 import jwt
 
@@ -20,7 +20,7 @@ security = HTTPBearer()
 SUPABASE_URL = "https://rgqiezjbzraidrlmkjkm.supabase.co"
 
 # Replace the old verify_token function with this:
-def verify_token(credentials: HTTPAuthCredentials = Depends(security)):
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify Supabase JWT token and extract UUID"""
     token = credentials.credentials
     try:
@@ -192,7 +192,7 @@ def register_user(body: dict):
         db.close()
 
 @app.get("/auth/user-id")
-def get_user_id(credentials: HTTPAuthCredentials = Depends(security)):
+def get_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Get user's graph ID from UUID (extracted from JWT token).
     Requires: Authorization: Bearer <token>
