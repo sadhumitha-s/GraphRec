@@ -77,11 +77,7 @@ async function setupUser(session) {
         if (res.ok) {
             const { user_id } = await res.json();
             AppState.myId = user_id;
-            // Set to their own ID on first login
-            if (!sessionStorage.getItem('loginShown')) {
-                AppState.viewingId = user_id;
-                sessionStorage.setItem('loginShown', 'true');
-            }
+            AppState.viewingId = user_id;
             console.log("[App] User ID:", AppState.myId);
         } else {
             console.warn("[App] Could not fetch user ID");
