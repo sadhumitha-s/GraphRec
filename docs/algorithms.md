@@ -56,7 +56,7 @@ ORDER BY COUNT(*) DESC;
   
 ## **6. Binary Graph Serialization**
 
-Instead of rebuilding the graph row-by-row from SQL ($O(E)$), we serialize the C++ memory layout directly to disk.
+Instead of rebuilding the graph row-by-row from SQL (O(E)), we serialize the C++ memory layout directly to disk.
 
 * **Write**: Iterates std::unordered\_map buckets and writes raw bytes to fstream.  
 * **Read**: Allocates memory and reads raw bytes directly into containers.
