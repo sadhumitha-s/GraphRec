@@ -35,3 +35,19 @@ class GraphSnapshot(Base):
     id = Column(Integer, primary_key=True, index=True)
     binary_data = Column(LargeBinary)  # Stores graph.bin file content
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class GraphSageItem(Base):
+    __tablename__ = "graphsage_items"
+    id = Column(Integer, primary_key=True, index=True)
+    movielens_id = Column(Integer, unique=True, index=True)
+    title = Column(String(255), index=True)
+    title_norm = Column(String(255), index=True)
+    embedding = Column(LargeBinary)  # float32 bytes
+    popularity = Column(Float, default=0.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class GraphSageMeta(Base):
+    __tablename__ = "graphsage_meta"
+    key = Column(String(64), primary_key=True)
+    value = Column(String(255))
