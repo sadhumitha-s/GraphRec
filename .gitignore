@@ -45,6 +45,7 @@ Do not push the memory dump
 
 graph.bin
 backend/graph.bin
+backend/transfer.py
 
 --- IDEs ---
 
