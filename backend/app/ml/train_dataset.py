@@ -16,7 +16,7 @@ CATALOG = [
     {"id": 102, "title": "Inception", "category": "Sci-Fi"},
     {"id": 103, "title": "The Departed", "category": "Crime"},
     {"id": 104, "title": "Toy Story", "category": "Animation"},
-    {"id": 105, "title": "Pulp Fiction", "category": "Crime"},
+    {"id": 105, "title": "Gone Girl", "category": "Crime"},
     {"id": 106, "title": "Interstellar", "category": "Sci-Fi"},
     {"id": 107, "title": "Finding Nemo", "category": "Animation"},
     {"id": 108, "title": "Spirited Away", "category": "Animation"},
@@ -76,7 +76,7 @@ def main():
     try:
         save_item_embeddings(
             db=db,
-            movielens_item_ids=bundle.tmdb_item_ids,
+            tmdb_item_ids=bundle.tmdb_item_ids,
             titles=bundle.item_titles,
             title_norms=title_norms,
             embeddings=item_emb,
