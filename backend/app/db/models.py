@@ -39,7 +39,7 @@ class GraphSnapshot(Base):
 class GraphSageItem(Base):
     __tablename__ = "graphsage_items"
     id = Column(Integer, primary_key=True, index=True)
-    movielens_id = Column(Integer, unique=True, index=True)
+    tmdb_id = Column(Integer, unique=True, index=True)
     title = Column(String(255), index=True)
     title_norm = Column(String(255), index=True)
     embedding = Column(LargeBinary)  # float32 bytes

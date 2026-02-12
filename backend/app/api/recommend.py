@@ -96,7 +96,7 @@ def get_recommendations(
 
     if algo == "graphsage":
         graph_candidates = recommend_graphsage_for_user(db, user_id, k + 10)
-        graph_strategy_name = "GraphSAGE (MovieLens)"
+        graph_strategy_name = "GraphSAGE (TMDb)"
     elif algo == "ppr" and hasattr(engine, "recommend_ppr"):
         graph_candidates = engine.recommend_ppr(user_id, k + 10, 10000, 2)
         graph_strategy_name = "PageRank"
