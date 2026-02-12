@@ -5,17 +5,17 @@ from app.db import models
 
 def save_item_embeddings(
     db: Session,
-    movielens_item_ids,
+    tmdb_item_ids,
     titles,
     title_norms,
     embeddings,
     popularity,
 ):
     db.query(models.GraphSageItem).delete()
-    for idx, movie_id in enumerate(movielens_item_ids):
+    for idx, movie_id in enumerate(tmdb_item_ids):
         emb_bytes = embeddings[idx].astype(np.float32).tobytes()
         row = models.GraphSageItem(
-            movielens_id=movie_id,
+            tmdb_id=movie_id,
             title=titles[idx],
             title_norm=title_norms[idx],
             embedding=emb_bytes,

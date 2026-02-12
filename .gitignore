@@ -37,6 +37,7 @@ backend/recommender*.so
 *.db
 *.sqlite3
 backend/graphrec.db
+backend/app/ml/data/
 
 --- NEW: Binary Graph Snapshot ---
 

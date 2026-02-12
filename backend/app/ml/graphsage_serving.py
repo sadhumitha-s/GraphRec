@@ -105,7 +105,7 @@ def recommend_graphsage_for_user(db: Session, user_id: int, k: int):
                 break
         return results
 
-    # Cold-start: rank by MovieLens popularity
+    # Cold-start: rank by TMDb popularity
     scored = list(zip(candidates, index.popularity[[idx for _, idx in candidates]]))
     scored.sort(key=lambda x: x[1], reverse=True)
     results = []
