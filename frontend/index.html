@@ -28,18 +28,6 @@
                 <div id="identity-content"></div>
             </div>
 
-            <div class="card">
-                <h2>Intelligence</h2>
-                <div class="control-group">
-                    <label>Engine</label>
-                    <select id="algo-selector" onchange="changeAlgo()">
-                        <option value="bfs">Weighted BFS</option>
-                        <option value="ppr">PageRank (AI)</option>
-                        <option value="graphsage">GraphSAGE (TMDb)</option>
-                    </select>
-                </div>
-            </div>
-
             <div class="card full-width">
                 <h2>Taste Profile</h2>
                 <div class="genre-cloud" id="genre-container">
@@ -122,12 +110,6 @@
         function changeTargetUser() {
             const val = document.getElementById('target-user-input').value;
             AppState.setViewingId(val);
-        }
-
-        function changeAlgo() {
-            const algo = document.getElementById('algo-selector').value;
-            AppState.setAlgo(algo);
-            renderCatalog(); // Refresh with new algo (doesn't affect catalog, but good for consistency)
         }
 
         function renderGenres() {
