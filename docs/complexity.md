@@ -7,6 +7,7 @@
 | **Redis Cache Hit** | $O(1)$ | < 1 ms | User has recent recs cached |
 | **Weighted BFS** | $O(H_{user} \times P_{item} \times H_{neighbor})$ | 2-10 ms | Depth-2 traversal with genre boost |
 | **PageRank (PPR)** | $O(N_{walks} \times D_{depth})$ | 15-50 ms | 10,000 walks × ~3-5 depth |
+| **GraphSAGE Inference** | $O(H_{user} + N_{items})$ | 2-5 ms | Mean embedding + dot product scoring |
 | **SQL Trending** | $O(\log N)$ (Index Scan) | 50-100 ms | Fallback: aggregation query |
 | **JWT Verification** | $O(1)$ | < 1 ms | HMAC-SHA256 signature check |
 
@@ -18,6 +19,7 @@
 |--------|---|---|---|
 | **SQL Full Rebuild** | $O(E)$ | ~20 sec | Network + parsing all interactions |
 | **Binary Snapshot Load** | $O(\frac{\text{Size}}{\text{DiskSpeed}})$ | < 0.2 sec | Disk I/O + memory mapping |
+| **GraphSAGE Embeddings Load** | $O(N_{items} \times D_{embedding})$ | < 0.2 sec | Load 2K × 64-dim from DB to memory |
 | **Startup Sync** | $O(E)$ | ~2 sec | Verify snapshot + replay fresh SQL rows |
 
 ---
@@ -28,6 +30,7 @@
 |-----------|---------|---|
 | **C++ Graph** | $O(V + E)$ | ~100 MB (nodes + edges) |
 | **Binary Snapshot** | $O(V + E)$ | ~80 MB (compressed memory layout) |
+| **GraphSAGE Embeddings** | $O(N_{items} \times D_{embedding} \times 4)$ | ~0.5 MB (2K × 64 × 4 bytes) |
 | **Redis Cache** | $O(U_{active} \times K)$ | ~10 MB (1000 active users × 5 items each) |
 | **SQL Database** | $O(V + E)$ | ~500 MB (Postgres overhead) |
 
@@ -83,4 +86,17 @@ All writes (`POST /interaction/`, `POST /recommend/preferences`, `POST /auth/reg
 | **Graph traversal (BFS)** | 100 req/s | C++ compute |
 | **PageRank** | 20 req/s | Monte Carlo walks |
 | **Like/Unlike** | 500 req/s | Database I/O |
-| **Preference update** | 200 req/s | Database I/O + cache invalidation |
+| **Preference update** | 200 req/s | Database I/O + cache invalidation |  
+
+---
+
+## **9. GraphSAGE Training (One-Time, Offline)**
+
+| Phase | Complexity | Duration (2K movies) | Notes |
+|-------|---|---|---|
+| **TMDb API Fetch** | $O(N_{pages} \times T_{delay})$ | ~10 min | 10s delay/page, ~60 pages |
+| **Build HeteroData** | $O(N_{movies} \times G_{genres})$ | < 1 sec | Pseudo-user graph construction |
+| **Training (30 epochs)** | $O(E_{epochs} \times (E + N_{neg}))$ | ~2 min | BPR loss, 1:5 neg sampling |
+| **Embedding Extraction** | $O(N_{items})$ | < 1 sec | Forward pass, export 64-dim vectors |
+| **DB Persist** | $O(N_{items})$ | ~10 sec | Batch insert to `graphsage_items` |
+| **Total** | - | ~15 min | One-time setup, cached afterward |
