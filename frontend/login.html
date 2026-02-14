@@ -4,134 +4,122 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - GraphRec</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="bg-gray-900 text-white font-sans flex items-center justify-center min-h-screen">
+<body class="login-container">
 
-    <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-gray-700">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-                GraphRec
-            </h1>
-            <p class="text-gray-400 mt-2">Sign in to build your taste graph</p>
+    <div class="login-card">
+        <div class="login-header">
+            <h1 class="login-title">GraphRec</h1>
+            <p class="login-subtitle">Sign in to build your taste graph</p>
         </div>
 
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">Email</label>
-                <input type="email" id="email" class="w-full bg-gray-900 border border-gray-600 p-3 rounded text-white focus:border-blue-500 outline-none transition">
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">Password</label>
-                <input type="password" id="password" class="w-full bg-gray-900 border border-gray-600 p-3 rounded text-white focus:border-blue-500 outline-none transition">
-            </div>
-
-            <div id="error-msg" class="hidden bg-red-900/50 border border-red-500 text-red-200 p-3 rounded text-sm text-center"></div>
-
-            <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded font-bold transition">
-                Sign In
-            </button>
-            
-            <button onclick="handleSignup()" class="w-full bg-green-600 hover:bg-green-500 py-3 rounded font-bold transition">
-                Create Account
-            </button>
+        <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="email" class="form-input">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="password" class="form-input">
         </div>
 
-        <div class="text-center mt-6">
-            <a href="index.html" class="text-gray-500 hover:text-white text-sm">Return to Guest Mode</a>
+        <div id="error-msg" class="error-msg hidden"></div>
+
+        <button onclick="handleLogin()" class="btn-primary">Sign In</button>
+        <button onclick="handleSignup()" class="btn-secondary">Create Account</button>
+
+        <div class="login-footer">
+            <a href="index.html">Return to Guest Mode</a>
         </div>
     </div>
 
     <script src="js/app.js"></script>
 
-<script>
-    if (!supabaseClient && window.supabase) {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log("[Login] Initialized supabaseClient locally");
-    }
+    <script>
+        if (!supabaseClient && window.supabase) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log("[Login] Initialized supabaseClient locally");
+        }
 
-    async function handleLogin() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        
-        if (!email || !password) {
-            showError("Please fill in all fields");
-            return;
-        }
-        
-        if (!supabaseClient) {
-            showError("Supabase not ready. Please refresh and try again.");
-            return;
-        }
-        
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        
-        if (error) {
-            showError(error.message);
-        } else {
-            showError("Logging you in...", "green");
-            setTimeout(() => window.location.href = "index.html", 1500);
-        }
-    }
-
-    async function handleSignup() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        
-        if (!email || !password) {
-            showError("Please fill in all fields");
-            return;
-        }
-        
-        const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email, password });
-        
-        if (authError) {
-            showError(authError.message);
-            return;
-        }
-        
-        console.log("[Register] Supabase user created:", authData.user.id);
-        
-        try {
-            const res = await fetch('/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    uuid: authData.user.id,
-                    email: email
-                })
-            });
+        async function handleLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
             
-            if (!res.ok) {
-                throw new Error(`Backend error: ${res.statusText}`);
+            if (!email || !password) {
+                showError("Please fill in all fields");
+                return;
             }
             
-            const { user_id } = await res.json();
-            console.log("[Register] Profile created with user_id:", user_id);
+            if (!supabaseClient) {
+                showError("Supabase not ready. Please refresh and try again.");
+                return;
+            }
             
-            showError(`🎉 Account created! Your User ID: ${user_id}. Redirecting...`, "green");
-            sessionStorage.setItem('newUserId', user_id);
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             
-            setTimeout(() => window.location.href = "index.html", 2500);
-        } catch (e) {
-            console.error("[Register] Profile creation failed:", e);
-            showError("Account created but profile setup failed. Please try logging in.");
+            if (error) {
+                showError(error.message);
+            } else {
+                showError("Logging you in...", "success");
+                setTimeout(() => window.location.href = "index.html", 1500);
+            }
         }
-    }
 
-    function showError(msg, color = "red") {
-        const el = document.getElementById('error-msg');
-        el.innerText = msg;
-        el.classList.remove('hidden');
-        el.className = `block p-3 rounded text-sm text-center border bg-${color}-900/50 text-${color}-200`;
-        if (color === "green") {
-            el.style.borderColor = "#059669";
-            el.style.color = "#dcfce7";
+        async function handleSignup() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showError("Please fill in all fields");
+                return;
+            }
+            
+            const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email, password });
+            
+            if (authError) {
+                showError(authError.message);
+                return;
+            }
+            
+            console.log("[Register] Supabase user created:", authData.user.id);
+            
+            try {
+                const res = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        uuid: authData.user.id,
+                        email: email
+                    })
+                });
+                
+                if (!res.ok) {
+                    throw new Error(`Backend error: ${res.statusText}`);
+                }
+                
+                const { user_id } = await res.json();
+                console.log("[Register] Profile created with user_id:", user_id);
+                
+                showError(`🎉 Account created! Your User ID: ${user_id}. Redirecting...`, "success");
+                sessionStorage.setItem('newUserId', user_id);
+                
+                setTimeout(() => window.location.href = "index.html", 2500);
+            } catch (e) {
+                console.error("[Register] Profile creation failed:", e);
+                showError("Account created but profile setup failed. Please try logging in.");
+            }
         }
-    }
-</script>
+
+        function showError(msg, type = "error") {
+            const el = document.getElementById('error-msg');
+            el.innerText = msg;
+            el.classList.remove('hidden', 'success');
+            if (type === "success") {
+                el.classList.add('success');
+            }
+        }
+    </script>
 </body>
 </html>
